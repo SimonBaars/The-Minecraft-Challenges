@@ -1,0 +1,16 @@
+tile.BlockTouchable.name=Game Over Block
+tile.BlockChallengeOne.name=JumpChallenge
+tile.BlockChallengeTwo.name=JumpChallenge - Time Attack
+tile.BlockChallengeThree.name=Arena
+tile.BlockChallengeFour.name=Arena - Madness Mode
+tile.BlockChallengeFive.name=Archery
+tile.BlockChallengeSix.name=Archery - Time Attack
+tile.BlockChallengeSeven.name=King of the Hill
+tile.BlockChallengeEight.name=Run 'n Dodge
+tile.BlockChallengeNine.name=Flappy Parcours
+tile.BlockChallengeTen.name=Challenge Ten
+tile.BlockBlackRock.name=BlackRock
+tile.BlockChickenDirt.name=Very special dirt
+tile.BlockBlueRock.name=Not Game Over Block
+
+itemGroup.Challenges=Challenges

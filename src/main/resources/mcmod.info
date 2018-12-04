@@ -1,0 +1,16 @@
+[
+{
+  "modid": "Challenge",
+  "name": "The Minecraft Challenges",
+  "description": "Challenges in Minecraft with online Leaderboards. How cool is that?",
+  "version": "${version}",
+  "mcversion": "${mcversion}",
+  "url": "diy-games.com",
+  "updateUrl": "",
+  "authorList": ["SimJoo"],
+  "credits": "SimJoo",
+  "logoFile": "",
+  "screenshots": [],
+  "dependencies": []
+}
+]
