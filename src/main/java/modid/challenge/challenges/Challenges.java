@@ -1,280 +1,266 @@
 package modid.challenge.challenges;
 
-import java.io.File;
+import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.List;
 
 import modid.challenge.core.BlockPlaceHandler;
-import modid.challenge.core.Challenge;
+import modid.challenge.core.ChallengeMod;
+import modid.challenge.core.ClientHooks;
 import modid.challenge.core.ScoreThread;
-import net.minecraft.block.Block;
-import net.minecraft.client.Minecraft;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityCreature;
-import net.minecraft.entity.item.EntityItem;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.init.Items;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.scoreboard.IScoreCriteria;
-import net.minecraft.scoreboard.IScoreCriteria.EnumRenderType;
-import net.minecraft.scoreboard.Score;
-import net.minecraft.scoreboard.ScoreObjective;
-import net.minecraft.scoreboard.Scoreboard;
-import net.minecraft.util.text.TextComponentString;
-import net.minecraft.world.EnumDifficulty;
-import net.minecraft.world.World;
-import net.minecraft.world.WorldSettings.GameType;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.Difficulty;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.GameType;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.gamerules.GameRules;
+import net.minecraft.world.scores.DisplaySlot;
+import net.minecraft.world.scores.Objective;
+import net.minecraft.world.scores.ScoreAccess;
+import net.minecraft.world.scores.ScoreHolder;
+import net.minecraft.world.scores.Scoreboard;
+import net.minecraft.world.scores.criteria.ObjectiveCriteria;
+import net.minecraft.network.chat.Component;
 
 public abstract class Challenges {
-	World worldIn;
-	World serverWorld;
-	protected int x,y,z;
-	EntityPlayerMP[] players;
-	ArrayList<EntityPlayerMP> alivePlayers = new ArrayList<EntityPlayerMP>();
-	ArrayList<EntityPlayerMP> deadPlayers = new ArrayList<EntityPlayerMP>();
-	ArrayList<Item> items = new ArrayList<Item>();
+	protected Level worldIn;
+	protected Level serverWorld;
+	protected int x, y, z;
+	protected ServerPlayer[] players;
+	protected ArrayList<ServerPlayer> alivePlayers = new ArrayList<>();
+	protected ArrayList<ServerPlayer> deadPlayers = new ArrayList<>();
+	protected ArrayList<Item> items = new ArrayList<>();
 	public long lastTickTime = 0;
-	GameType defGameType;
+	protected GameType defGameType;
 	public int waitTime = 2000;
 	public int numberOfPlayers;
-	int score=0;
-	GameType oldGameType;
-	EnumDifficulty defDifficulty;
-	ArrayList<ItemStack> oldInventory = new ArrayList<ItemStack>();
-	Score displayScore;
-	Score displayHighscore;
-	ScoreObjective scoreBoard;
+	protected int score = 0;
+	protected GameType oldGameType = GameType.SURVIVAL;
+	protected Difficulty defDifficulty;
+	protected ArrayList<ItemStack> oldInventory = new ArrayList<>();
+	protected ScoreAccess displayScore;
+	protected ScoreAccess displayHighscore;
+	protected Objective scoreBoard;
 
-	public Challenges(int x, int y, int z, GameType defGameType, EnumDifficulty defDifficulty){
-		this.defGameType=defGameType;
-		this.x=x;
-		this.y=y;
-		this.z=z;
-		this.defDifficulty=defDifficulty;
-		Challenge.eventHandler.challenge=this;
-		Minecraft.getMinecraft().getIntegratedServer().setDifficultyForAllWorlds(defDifficulty);
-		//Challenge.eventHandler.previousTick = System.currentTimeMillis();
-		this.worldIn=Minecraft.getMinecraft().theWorld;
-		this.serverWorld=Minecraft.getMinecraft().getIntegratedServer().getEntityWorld();
-		for(int i = 0; i<Minecraft.getMinecraft().thePlayer.inventory.mainInventory.length; i++){
-			oldInventory.add(Minecraft.getMinecraft().thePlayer.inventory.mainInventory[i]);
-		}
-		for(int i = 0; i<Minecraft.getMinecraft().thePlayer.inventory.armorInventory.length; i++){
-			oldInventory.add(Minecraft.getMinecraft().thePlayer.inventory.armorInventory[i]);
-		}
-		for(int i = 0; i<Minecraft.getMinecraft().getIntegratedServer().getEntityWorld().loadedEntityList.size(); i++){
-			if(Minecraft.getMinecraft().getIntegratedServer().getEntityWorld().loadedEntityList.get(i) instanceof EntityCreature || Minecraft.getMinecraft().getIntegratedServer().getEntityWorld().loadedEntityList.get(i) instanceof EntityItem){
-				((Entity)Minecraft.getMinecraft().getIntegratedServer().getEntityWorld().loadedEntityList.get(i)).setDead();
-				//Minecraft.getMinecraft().getIntegratedServer().getEntityWorld().removeEntity((Entity) Minecraft.getMinecraft().getIntegratedServer().getEntityWorld().loadedEntityList.get(i));
+	public Challenges(int x, int y, int z, GameType defGameType, Difficulty defDifficulty) {
+		this.defGameType = defGameType;
+		this.x = x;
+		this.y = y;
+		this.z = z;
+		this.defDifficulty = defDifficulty;
+		ChallengeMod.eventHandler.challenge = this;
+		ClientHooks.setDifficulty(defDifficulty);
+		this.worldIn = ClientHooks.clientLevel();
+		this.serverWorld = ClientHooks.overworld();
+		var local = ClientHooks.localPlayer();
+		if (local != null) {
+			for (ItemStack stack : local.getInventory().getNonEquipmentItems()) {
+				oldInventory.add(stack.copy());
 			}
 		}
-		Minecraft.getMinecraft().getIntegratedServer().getEntityWorld().getGameRules().setOrCreateGameRule("doMobSpawning", "false");
-		Minecraft.getMinecraft().thePlayer.addChatMessage(new TextComponentString("The challenge has started!"));
-		numberOfPlayers = Minecraft.getMinecraft().getIntegratedServer().getCurrentPlayerCount();
-		if(numberOfPlayers==0){
+		if (serverWorld instanceof net.minecraft.server.level.ServerLevel sl && local != null) {
+			var box = local.getBoundingBox().inflate(128.0);
+			for (Mob mob : sl.getEntitiesOfClass(Mob.class, box)) {
+				mob.discard();
+			}
+			for (ItemEntity item : sl.getEntitiesOfClass(ItemEntity.class, box)) {
+				item.discard();
+			}
+			sl.getGameRules().set(GameRules.SPAWN_MOBS, false, ClientHooks.integratedServer());
+			sl.getGameRules().set(GameRules.SPAWN_MONSTERS, false, ClientHooks.integratedServer());
+		}
+		ClientHooks.chat("The challenge has started!");
+		numberOfPlayers = ClientHooks.playerCount();
+		if (numberOfPlayers == 0) {
 			System.out.println("Something went wrong while initializing players...");
 		}
-		players = new EntityPlayerMP[numberOfPlayers];
-		int i = 0;
-		for(Object player : Minecraft.getMinecraft().getIntegratedServer().getEntityWorld().playerEntities){
-			players[i] = (EntityPlayerMP)player;
-			this.oldGameType=Minecraft.getMinecraft().getIntegratedServer().getEntityWorld().getWorldInfo().getGameType();//players[i].theItemInWorldManager.getGameType();
-			alivePlayers.add(players[i]);
-			players[i].setGameType(defGameType);
-			Minecraft.getMinecraft().getIntegratedServer().getEntityWorld().getWorldInfo().setGameType(defGameType);
-			i++;
+		List<ServerPlayer> serverPlayers = ClientHooks.serverPlayers();
+		players = serverPlayers.toArray(new ServerPlayer[0]);
+		for (ServerPlayer player : players) {
+			this.oldGameType = player.gameMode();
+			alivePlayers.add(player);
+			player.setGameMode(defGameType);
 		}
-		lastTickTime=System.currentTimeMillis();
-		//((EntityPlayerMP)Minecraft.getMinecraft().getIntegratedServer().worldServerForDimension(0).getPlayerEntityByName(Minecraft.getMinecraft().thePlayer.getName())).setGameType(GameType.ADVENTURE);
-		scoreBoard = Minecraft.getMinecraft().theWorld.getScoreboard().addScoreObjective("Score", IScoreCriteria.DUMMY);
-		scoreBoard.setRenderType(EnumRenderType.INTEGER);
-		scoreBoard.getScoreboard().setObjectiveInDisplaySlot(Scoreboard.getObjectiveDisplaySlotNumber("sidebar"), scoreBoard);
-		displayScore = scoreBoard.getScoreboard().getOrCreateScore("Score", scoreBoard);
-		displayScore.setScorePoints(0);
-		displayHighscore = scoreBoard.getScoreboard().getOrCreateScore("Current Highscore", scoreBoard);
-		//System.out.println(Challenge.highscores[getChallengeNum()-1]+", "+(getChallengeNum()-1));
-		displayHighscore.setScorePoints(Challenge.highscores[getChallengeNum()-1]);
+		lastTickTime = System.currentTimeMillis();
+		Scoreboard board = worldIn.getScoreboard();
+		Objective existing = board.getObjective("Score");
+		if (existing != null) {
+			board.removeObjective(existing);
+		}
+		scoreBoard = board.addObjective("Score", ObjectiveCriteria.DUMMY, Component.literal("Score"), ObjectiveCriteria.RenderType.INTEGER, false, null);
+		board.setDisplayObjective(DisplaySlot.SIDEBAR, scoreBoard);
+		displayScore = board.getOrCreatePlayerScore(ScoreHolder.forNameOnly("Score"), scoreBoard);
+		displayScore.set(0);
+		displayHighscore = board.getOrCreatePlayerScore(ScoreHolder.forNameOnly("Current Highscore"), scoreBoard);
+		displayHighscore.set(ChallengeMod.highscores[Math.max(0, getChallengeNum() - 1)]);
 	}
 
-	public int getScore(){
-		return -(score/10);
+	public int getScore() {
+		return -(score / 10);
 	}
 
-	public boolean resetPlayer(){
-		if(y>150){
-			Minecraft.getMinecraft().thePlayer.addChatMessage(new TextComponentString("You cannot create this challenge this high..."));
+	public boolean resetPlayer() {
+		if (y > 150) {
+			ClientHooks.chat("You cannot create this challenge this high...");
 			removeThisChallenge();
 			return true;
 		}
-		if(Minecraft.getMinecraft().getIntegratedServer().getEntityWorld().getDifficulty()!=defDifficulty){
-			Minecraft.getMinecraft().thePlayer.addChatMessage(new TextComponentString("Please do not change the difficulty..."));
+		if (serverWorld != null && serverWorld.getDifficulty() != defDifficulty) {
+			ClientHooks.chat("Please do not change the difficulty...");
 			removeThisChallenge();
 			return true;
 		}
-		for(EntityPlayerMP player : players){
-			player.isAirBorne=false;
-			if(player.inventory.getCurrentItem()==null || player.inventory.getCurrentItem().getItem()!=Items.bow){
-				player.inventory.clear();
-				for(Item item : items){
-					player.inventory.addItemStackToInventory(new ItemStack(item, item.getItemStackLimit()));
-				};
-				player.inventoryContainer.detectAndSendChanges();
+		for (ServerPlayer player : players) {
+			ItemStack selected = player.getInventory().getSelectedItem();
+			if (selected.isEmpty() || selected.getItem() != Items.BOW) {
+				player.getInventory().clearContent();
+				for (Item item : items) {
+					player.getInventory().add(new ItemStack(item, item.getDefaultMaxStackSize()));
+				}
 			}
-			/*for(int i = 0; i<Minecraft.getMinecraft().getIntegratedServer().getEntityWorld().loadedEntityList.size(); i++){
-			if(Minecraft.getMinecraft().getIntegratedServer().getEntityWorld().loadedEntityList.get(i) instanceof EntityWitch){
-				((Entity)Minecraft.getMinecraft().getIntegratedServer().getEntityWorld().loadedEntityList.get(i)).setDead();
-				//Minecraft.getMinecraft().getIntegratedServer().getEntityWorld().removeEntity((Entity) Minecraft.getMinecraft().getIntegratedServer().getEntityWorld().loadedEntityList.get(i));
-			}
-		}*/
-			player.getFoodStats().setFoodLevel(20);
-			if(alivePlayers.contains(player) && Minecraft.getMinecraft().getIntegratedServer().getEntityWorld().getWorldInfo().getGameType()!=defGameType){
-				Minecraft.getMinecraft().thePlayer.addChatMessage(new TextComponentString("You cannot do this challenge in any other gamemode than survival..."));
-				removeThisChallenge();
-				return true;
-			} 
-			if(deadPlayers.contains(player) && Minecraft.getMinecraft().getIntegratedServer().getEntityWorld().getWorldInfo().getGameType()!=GameType.SPECTATOR){
-				Minecraft.getMinecraft().thePlayer.addChatMessage(new TextComponentString("You be in any other gamemode than SPECTATOR now..."));
+			player.getFoodData().setFoodLevel(20);
+			if (alivePlayers.contains(player) && player.gameMode() != defGameType) {
+				ClientHooks.chat("You cannot do this challenge in any other gamemode than survival...");
 				removeThisChallenge();
 				return true;
 			}
-			if(player.getActivePotionEffects().size()>0){
-				Minecraft.getMinecraft().thePlayer.addChatMessage(new TextComponentString("You cannot do this challenge when potion effects are active"));
+			if (deadPlayers.contains(player) && player.gameMode() != GameType.SPECTATOR) {
+				ClientHooks.chat("You be in any other gamemode than SPECTATOR now...");
 				removeThisChallenge();
 				return true;
 			}
-			if(alivePlayers.contains(player) && !withinGameRoom((int)player.posX, (int)player.posY, (int)player.posZ)){
+			if (!player.getActiveEffects().isEmpty()) {
+				ClientHooks.chat("You cannot do this challenge when potion effects are active");
+				removeThisChallenge();
+				return true;
+			}
+			if (alivePlayers.contains(player) && !withinGameRoom((int) player.getX(), (int) player.getY(), (int) player.getZ())) {
 				System.out.println("You left the gameroom? (this might be by error)");
 				endChallenge(player);
 				return true;
 			}
 		}
-		if(Minecraft.getMinecraft().thePlayer.inventory.getCurrentItem()==null || Minecraft.getMinecraft().thePlayer.inventory.getCurrentItem().getItem()!=Items.bow){
-			Minecraft.getMinecraft().thePlayer.inventory.clear();
-			for(Item item : items){
-				Minecraft.getMinecraft().thePlayer.inventory.addItemStackToInventory(new ItemStack(item, item.getItemStackLimit()));
-			};
-			Minecraft.getMinecraft().thePlayer.inventoryContainer.detectAndSendChanges();
+		var local = ClientHooks.localPlayer();
+		if (local != null) {
+			ItemStack selected = local.getInventory().getSelectedItem();
+			if (selected.isEmpty() || selected.getItem() != Items.BOW) {
+				local.getInventory().clearContent();
+				for (Item item : items) {
+					local.getInventory().add(new ItemStack(item, item.getDefaultMaxStackSize()));
+				}
+			}
 		}
-		if(numberOfPlayers!=Minecraft.getMinecraft().getIntegratedServer().getCurrentPlayerCount()){
-			Minecraft.getMinecraft().thePlayer.addChatMessage(new TextComponentString("No players may leave or join the game while a challenge is running."));
+		if (numberOfPlayers != ClientHooks.playerCount()) {
+			ClientHooks.chat("No players may leave or join the game while a challenge is running.");
 			removeThisChallenge();
 			return true;
 		}
-		/*if(Minecraft.getMinecraft().getIntegratedServer().getCurrentPlayerCount()>1){
-			Minecraft.getMinecraft().thePlayer.addChatMessage(new TextComponentString("You cannot do this challenge when other players are online"));
-			removeThisChallenge();
-		}*/
 		return false;
 	}
 
-	void increaseScore(){
-		score-=10;
+	void increaseScore() {
+		score -= 10;
 	}
 
-	boolean withinGameRoom(int x, int y, int z){
-		return closeToGameRoom(0,x,y,z);
+	boolean withinGameRoom(int x, int y, int z) {
+		return closeToGameRoom(0, x, y, z);
 	}
 
 	abstract boolean closeToGameRoom(int howClose, int x, int y, int z);
 
-	void showScore(){
-		//Minecraft.getMinecraft().ingameGUI.getChatGUI().clearChatMessages();
-		//Minecraft.getMinecraft().thePlayer.addChatMessage(new TextComponentString("Score = "+getScore()));
-		displayScore.setScorePoints(getScore());
+	void showScore() {
+		if (displayScore != null) {
+			displayScore.set(getScore());
+		}
 	}
 
-	public void removeThisChallenge(){
-		if(Minecraft.getMinecraft().thePlayer!=null){
-			for(int i = 0; i<players.length; i++){
-				players[i].setGameType(oldGameType);
-				int j;
-				for(j = 0; j<Minecraft.getMinecraft().thePlayer.inventory.mainInventory.length; j++){
-					players[i].inventory.mainInventory[j]=oldInventory.get(j);
-				}
-				for(int k = 0; k<Minecraft.getMinecraft().thePlayer.inventory.armorInventory.length; k++){
-					Minecraft.getMinecraft().thePlayer.inventory.armorInventory[k]=oldInventory.get(j);
+	public void removeThisChallenge() {
+		if (ClientHooks.localPlayer() != null) {
+			for (ServerPlayer player : players) {
+				player.setGameMode(oldGameType);
+				player.getInventory().clearContent();
+				int j = 0;
+				for (ItemStack stack : oldInventory) {
+					if (j < player.getInventory().getNonEquipmentItems().size()) {
+						player.getInventory().setItem(j, stack.copy());
+					}
 					j++;
 				}
 			}
-			try{
-				new File("saves/"+Minecraft.getMinecraft().getIntegratedServer().getFolderName()+"/challenge.txt").delete();
-			} catch (Exception e){
-
+			try {
+				var file = ClientHooks.worldSaveDir();
+				if (file != null) {
+					Files.deleteIfExists(file.resolve("challenge.txt"));
+				}
+			} catch (Exception ignored) {
 			}
-			scoreBoard.getScoreboard().removeObjective(scoreBoard);
-			//scoreBoard.getScoreboard().func_96519_k(scoreBoard);
-			Minecraft.getMinecraft().getIntegratedServer().getEntityWorld().getGameRules().setOrCreateGameRule("doMobSpawning", "true");
+			if (scoreBoard != null && worldIn != null) {
+				worldIn.getScoreboard().removeObjective(scoreBoard);
+			}
+			if (serverWorld instanceof net.minecraft.server.level.ServerLevel sl) {
+				sl.getGameRules().set(GameRules.SPAWN_MOBS, true, ClientHooks.integratedServer());
+				sl.getGameRules().set(GameRules.SPAWN_MONSTERS, true, ClientHooks.integratedServer());
+			}
 			destroy();
 		}
-		Challenge.eventHandler.challenge=null;
+		ChallengeMod.eventHandler.challenge = null;
 	}
 
 	abstract void destroy();
 
-	//abstract boolean addToMap(IBlockState state, int x,int y, int z);
-
-	public void placeBlocks(Block block, int posx, int posy, int posz, int sizex, int sizey, int sizez){
+	public void placeBlocks(Block block, int posx, int posy, int posz, int sizex, int sizey, int sizez) {
 		BlockPlaceHandler.placeBlocks(worldIn, serverWorld, block, posx, posy, posz, sizex, sizey, sizez);
 	}
 
-	//abstract void register(int x, int y, int z);
+	public abstract boolean run();
 
-
-	abstract public boolean run();
-
-	public void endChallenge(EntityPlayer entityIn) {
-		EntityPlayerMP deadPlayer = (EntityPlayerMP)  Minecraft.getMinecraft().getIntegratedServer().getEntityWorld().getPlayerEntityByName(entityIn.getName());
-		if(alivePlayers.contains(deadPlayer)){
-			int challengenum=getChallengeNum();
-			Minecraft.getMinecraft().thePlayer.addChatMessage(new TextComponentString("It's Game Over for "+entityIn.getName()+"!"));
-			Minecraft.getMinecraft().thePlayer.addChatMessage(new TextComponentString(entityIn.getName()+" has ended with a score of "+getScore()));
+	public void endChallenge(Player entityIn) {
+		ServerPlayer deadPlayer = ClientHooks.serverPlayerByName(entityIn.getName().getString());
+		if (deadPlayer == null) {
+			deadPlayer = ClientHooks.serverPlayerFor(entityIn);
+		}
+		if (deadPlayer != null && alivePlayers.contains(deadPlayer)) {
+			int challengenum = getChallengeNum();
+			ClientHooks.chat("It's Game Over for " + entityIn.getName().getString() + "!");
+			ClientHooks.chat(entityIn.getName().getString() + " has ended with a score of " + getScore());
 			ScoreThread scoreThread = new ScoreThread(getScore(), challengenum, entityIn);
 			scoreThread.start();
-			if(getScore()>Challenge.highscores[challengenum-1]){
-				Challenge.highscores[challengenum-1]=getScore();
+			if (getScore() > ChallengeMod.highscores[challengenum - 1]) {
+				ChallengeMod.highscores[challengenum - 1] = getScore();
 			}
 			alivePlayers.remove(deadPlayer);
 			deadPlayers.add(deadPlayer);
 		}
-		if(alivePlayers.size()==0){
+		if (alivePlayers.isEmpty()) {
 			removeThisChallenge();
-		} else {
-			deadPlayer.setGameType(GameType.SPECTATOR);
+		} else if (deadPlayer != null) {
+			deadPlayer.setGameMode(GameType.SPECTATOR);
 		}
 	}
 
 	private int getChallengeNum() {
-		// TODO Auto-generated method stub
-		if(this instanceof ChallengeOne){
-			return 1;
-		} else if (this instanceof ChallengeTwo){
-			return 2;
-		}else if (this instanceof ChallengeTwo){
-			return 2;
-		}else if (this instanceof ChallengeThree){
-			return 3;
-		}else if (this instanceof ChallengeFour){
-			return 4;
-		}else if (this instanceof ChallengeFive){
-			return 5;
-		}else if (this instanceof ChallengeSix){
-			return 6;
-		}else if (this instanceof ChallengeSeven){
-			return 7;
-		}else if (this instanceof ChallengeEight){
-			return 8;
-		}else if (this instanceof ChallengeNine){
-			return 9;
-		}/*else if (this instanceof ChallengeTen){
-				return 10;
-			}*/
-		return 0;
+		if (this instanceof ChallengeOne) return 1;
+		if (this instanceof ChallengeTwo) return 2;
+		if (this instanceof ChallengeThree) return 3;
+		if (this instanceof ChallengeFour) return 4;
+		if (this instanceof ChallengeFive) return 5;
+		if (this instanceof ChallengeSix) return 6;
+		if (this instanceof ChallengeSeven) return 7;
+		if (this instanceof ChallengeEight) return 8;
+		if (this instanceof ChallengeNine) return 9;
+		return 1;
 	}
 
 	public void endChallengeForAllPlayers() {
-		for(int i = 0; i<players.length; i++){
-			endChallenge(players[i]);
+		for (ServerPlayer player : players) {
+			endChallenge(player);
 		}
 	}
 }

@@ -1,228 +1,152 @@
 package modid.challenge.challenges;
 
-import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.PrintWriter;
-import java.io.UnsupportedEncodingException;
+import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Iterator;
 
+import modid.challenge.core.ChallengeMod;
+import modid.challenge.core.ClientHooks;
+import modid.challenge.core.MobFactory;
 import modid.challenge.structureloader.SchematicStructure;
-import net.minecraft.client.Minecraft;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityLiving;
-import net.minecraft.entity.IEntityLivingData;
-import net.minecraft.entity.monster.EntityBlaze;
-import net.minecraft.entity.monster.EntityCaveSpider;
-import net.minecraft.entity.monster.EntityCreeper;
-import net.minecraft.entity.monster.EntityEnderman;
-import net.minecraft.entity.monster.EntityEndermite;
-import net.minecraft.entity.monster.EntityGiantZombie;
-import net.minecraft.entity.monster.EntityGuardian;
-import net.minecraft.entity.monster.EntityMagmaCube;
-import net.minecraft.entity.monster.EntityPigZombie;
-import net.minecraft.entity.monster.EntitySilverfish;
-import net.minecraft.entity.monster.EntitySkeleton;
-import net.minecraft.entity.monster.EntitySlime;
-import net.minecraft.entity.monster.EntitySpider;
-import net.minecraft.entity.monster.EntityWitch;
-import net.minecraft.entity.monster.EntityZombie;
-import net.minecraft.entity.passive.EntityRabbit;
-import net.minecraft.entity.passive.EntityWolf;
-import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.init.Blocks;
-import net.minecraft.init.Items;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.EnumDifficulty;
-import net.minecraft.world.World;
-import net.minecraft.world.WorldSettings.GameType;
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.Difficulty;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.GameType;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Blocks;
 
 public class ChallengeThree extends Challenges {
-	int sizex;
-	int sizey;
-	int sizez;
-	final int fieldx = 30;
-	final int fieldy = 5;
-	final int fieldz = 40;
+	int sizex = 65;
+	int sizey = 20;
+	int sizez = 75;
+	int fieldx = 20;
+	int fieldy = 5;
+	int fieldz = 20;
 	int cornerx;
 	int cornerz;
-	ArrayList<Entity> activeMonsters = new ArrayList<Entity>();
+	ArrayList<Entity> activeMonsters = new ArrayList<>();
 	int wave = 0;
 	final int nWaves = 20;
 	private SchematicStructure checkStructure;
-	private boolean doReplaceStuff = true;
+
 	public ChallengeThree(int x, int y, int z) {
-		super(x,y,z,GameType.ADVENTURE,EnumDifficulty.HARD);
-		cornerx=x-15;
-		cornerz=z-20;
+		super(x, y, z, GameType.SURVIVAL, Difficulty.NORMAL);
 		showScore();
 		initArena();
-		for(EntityPlayerMP player : players){
-			player.setPosition(x, y+2	,z);
-			player.setHealth(20);
+		cornerx = x + 32;
+		cornerz = z + 38;
+		for (ServerPlayer player : players) {
+			player.snapTo(x, y + 2, z);
 		}
 		resetPlayer();
 	}
-	
-	void initArena(){
+
+	void initArena() {
 		SchematicStructure structure = new SchematicStructure("arena");
 		structure.readFromFile();
-		sizex=structure.length;
-		sizey=structure.height;
-		sizez=structure.width;
-		structure.process(serverWorld, worldIn, x+32, y-1, z+37);
+		structure.process(serverWorld, worldIn, x, y, z);
 		structure = new SchematicStructure("arenacheck");
 		structure.readFromFile();
-		structure.isLive=true;
-		this.checkStructure=structure;
+		this.checkStructure = structure;
+		ChallengeMod.checkMode = true;
+		items.add(Items.WOODEN_SWORD);
 	}
-	
-	void spawnMobs(int monsterId, int amount){
-		amount=(amount*((wave/nWaves)+1))*numberOfPlayers;
-		for(int i = 0; i<amount; i++){
-			EntityLiving monster = getMonster(monsterId, serverWorld);
-			monster.setLocationAndAngles(cornerx+((int)(Math.random()*(fieldx-2)))+1, y+2, cornerz+((int)(Math.random()*(fieldz-2)))+1, 0, 0);
-			monster.onInitialSpawn(worldIn.getDifficultyForLocation(new BlockPos(monster)), (IEntityLivingData)null);
-			//monster.spawnEntityInWorld(monster);
-			serverWorld.spawnEntityInWorld(monster);
+
+	void spawnMobs(int monsterId, int amount) {
+		amount = (amount * ((wave / nWaves) + 1)) * Math.max(1, numberOfPlayers);
+		if (!(serverWorld instanceof ServerLevel sl)) return;
+		for (int i = 0; i < amount; i++) {
+			Mob monster = MobFactory.create(monsterId, serverWorld);
+			if (monster == null) continue;
+			monster.snapTo(cornerx - ((int) (Math.random() * (fieldx - 2))) - 1, y + 3, cornerz + 3 - ((int) (Math.random() * (fieldz - 2))) - 1, 0, 0);
+			sl.addFreshEntity(monster);
 			activeMonsters.add(monster);
 		}
 	}
-	
-	private EntityLiving getMonster(int monsterId, World world) {
-		switch(monsterId){
-		case 0: return new EntityZombie(world);
-		case 1: return new EntitySpider(world);
-		case 2: return new EntityBlaze(world);
-		case 3: return new EntityCaveSpider(world);
-		case 4: return new EntityCreeper(world);
-		case 5: return new EntityEnderman(world);
-		case 6: return new EntityEndermite(world);
-		case 7: return new EntityGiantZombie(world);
-		case 8: return new EntityGuardian(world);
-		case 9: return new EntityMagmaCube(world);
-		case 10: return new EntityPigZombie(world);
-		case 11: return new EntitySilverfish(world);
-		case 12: return new EntitySkeleton(world); /*skelly.setCurrentItemOrArmor(0, new ItemStack(Items.bow)); return skelly*/
-		case 13: return new EntitySlime(world);
-		case 14: return new EntityWitch(world);
-		case 15: return new EntityWolf(world);
-		case 16: EntityRabbit rabbit = new EntityRabbit(world); rabbit.setRabbitType(99); return rabbit;
-		}
-		return null;
+
+	@Override
+	void destroy() {
+		placeBlocks(Blocks.AIR, x + 32, y - 1, z + 38, sizex, sizey, sizez);
+		for (Entity e : activeMonsters) e.discard();
+		ChallengeMod.checkMode = false;
 	}
 
-	void destroy(){
-		placeBlocks(Blocks.air, x+32, y-1,z+38,sizex,sizey,sizez);
-		for(int i = 0; i<activeMonsters.size(); i++){
-			if(activeMonsters.get(i)!=null){
-			activeMonsters.get(i).setDead();
-			}
-		}
+	@Override
+	boolean closeToGameRoom(int howClose, int x, int y, int z) {
+		x = x - cornerx + fieldx - howClose;
+		y = y - this.y - howClose;
+		z = z - cornerz + fieldz - howClose;
+		return x >= 0 && x <= fieldx + (2 * howClose) && y >= 0 && y <= 10 + (2 * howClose) && z >= 0 && z <= fieldz + (2 * howClose);
 	}
-	
-	boolean closeToGameRoom(int howClose, int x, int y, int z){
-		x = x-cornerx-howClose;
-		y = y-this.y-1-howClose;
-		z = z-cornerz-howClose;
-		//System.out.println(x+", "+y+", "+z+", "+(fieldx+(2*howClose))+", "+(fieldy+(2*howClose)+3)+", "+(fieldz+(2*howClose)+2));
-		return (x>=0 && x<=fieldx+(2*howClose) && y>=0 && y<=fieldy+(2*howClose) && z>=0 && z<=fieldz+(2*howClose)+2);
-	}
-	
-	public boolean run(){
-		waitTime=1000;
-		serverWorld.setWorldTime(14000);
-		if(Minecraft.getMinecraft().thePlayer!=null){
-			if(doReplaceStuff){
-				checkStructure.process(serverWorld, worldIn, cornerx+fieldx, y-1, cornerz+fieldz);	
-			}
-		if(resetPlayer()){
-			return true;
+
+	@Override
+	public boolean run() {
+		if (ClientHooks.localPlayer() == null) return false;
+		if (resetPlayer()) return true;
+		Iterator<Entity> it = activeMonsters.iterator();
+		while (it.hasNext()) {
+			Entity e = it.next();
+			if (!e.isAlive()) it.remove();
 		}
-		//setWaterWorld();
-		if(activeMonsters.size()==0){
-			int realWave = wave%nWaves;
-			switch(realWave){
-			case 0: items.clear(); items.add(Items.wooden_sword); spawnMobs(16,2); break;
-			case 1: spawnMobs(12,2); break;
-			case 2: spawnMobs(13,4); break;
-			case 3: spawnMobs(11,10); break;
-			case 4: spawnMobs(15,5); break;
-			case 5: spawnMobs(0,20); break;
-			case 6: spawnMobs(4,5); break;
-			case 7: items.add(Items.stone_sword); spawnMobs(8, 1); break;
-			case 8: spawnMobs(9, 10); break;
-			case 9: spawnMobs(2, 5); break;
-			case 10: spawnMobs(10,6); break;
-			case 11: spawnMobs(1,20); break;
-			case 12: spawnMobs(11,35); break;
-			case 13: items.add(Items.iron_sword); spawnMobs(6,50); break;
-			case 14: spawnMobs(9, 15); spawnMobs(13, 15); break;
-			case 15: spawnMobs(10,15); break;
-			case 16: items.add(Items.diamond_sword); spawnMobs(0,40); break;
-			case 17: spawnMobs(16,15); break;
-			case 18: spawnMobs(12,20); break;
-			case 19: int[] finalRound = {0,1,2,4,6,8,9,10,11,12,13,15,16}; items.add(Items.flint_and_steel); for(int i = 0; i<finalRound.length; i++){ spawnMobs(finalRound[i],3); }
-			} 
+		if (activeMonsters.isEmpty()) {
 			wave++;
-		}else {
-			for(int i = 0; i<activeMonsters.size(); i++){
-				if(activeMonsters.get(i).isDead){
-					activeMonsters.remove(i);
-					increaseScore();
-					i--;
-				}else if(activeMonsters.get(i).posY>y+4){
-					activeMonsters.get(i).setDead();
-				}
-			}
-		}
-		
-		showScore();
-		waitTime--;
-		
-		
-		register();
+			increaseScore();
+			showScore();
+			nextWave();
+			register();
 		}
 		return false;
 	}
-	
-	private void removeWaterWorld() {
-		// TODO Auto-generated method stub
-		doReplaceStuff=true;
-		placeBlocks(Blocks.air, cornerx+fieldx-1, y+1,cornerz+fieldz,fieldx,2,fieldz);
-	}
 
-	private void setWaterWorld() {
-		// TODO Auto-generated method stub
-		doReplaceStuff=false;
-		placeBlocks(Blocks.water, cornerx+fieldx-1, y+1,cornerz+fieldz,fieldx,2,fieldz);
-		for(int i  = 0; i<fieldx; i+=3){
-			for(int j = 0; j<2; j++){
-				for(int k  = 0; k<fieldz; k+=3){
-					placeBlocks(Blocks.sand, cornerx+fieldx-1-i, y+1+j,cornerz+fieldz-k,1,2,1);
-				}
+	void nextWave() {
+		items.clear();
+		switch (Math.min(wave, 19)) {
+			case 0 -> { items.add(Items.WOODEN_SWORD); spawnMobs(16, 2); }
+			case 1 -> spawnMobs(0, 3);
+			case 2 -> spawnMobs(1, 3);
+			case 3 -> spawnMobs(4, 2);
+			case 4 -> spawnMobs(12, 2);
+			case 5 -> spawnMobs(11, 4);
+			case 6 -> spawnMobs(13, 2);
+			case 7 -> { items.add(Items.STONE_SWORD); spawnMobs(8, 2); }
+			case 8 -> spawnMobs(3, 3);
+			case 9 -> spawnMobs(15, 3);
+			case 10 -> spawnMobs(14, 2);
+			case 11 -> spawnMobs(2, 2);
+			case 12 -> spawnMobs(5, 2);
+			case 13 -> { items.add(Items.IRON_SWORD); spawnMobs(6, 4); }
+			case 14 -> spawnMobs(9, 2);
+			case 15 -> spawnMobs(10, 3);
+			case 16 -> { items.add(Items.DIAMOND_SWORD); spawnMobs(0, 8); }
+			case 17 -> spawnMobs(7, 1);
+			case 18 -> spawnMobs(1, 6);
+			default -> {
+				items.add(Items.FLINT_AND_STEEL);
+				int[] finalRound = {0, 1, 2, 4, 6, 9, 10, 11, 12, 13, 15, 16};
+				for (int id : finalRound) spawnMobs(id, 2);
 			}
 		}
 	}
 
-	void register(){
-		//System.out.println("Registered "+at);
-		PrintWriter writer;
+	void register() {
 		try {
-			(new File("saves/"+Minecraft.getMinecraft().getIntegratedServer().getFolderName())).mkdirs();
-			writer = new PrintWriter("saves/"+Minecraft.getMinecraft().getIntegratedServer().getFolderName()+"/challenge.txt", "UTF-8");
-			writer.println(x+32);
-			writer.println(y-1);
-			writer.println(z+38);
-			writer.println(sizex);
-			writer.println(sizey);
-			writer.println(sizez);
-		writer.close();
-		
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (UnsupportedEncodingException e) {
-			// TODO Auto-generated catch block
+			var dir = ClientHooks.worldSaveDir();
+			if (dir == null) return;
+			Files.createDirectories(dir);
+			try (PrintWriter writer = new PrintWriter(Files.newBufferedWriter(dir.resolve("challenge.txt")))) {
+				writer.println(x + 32);
+				writer.println(y - 1);
+				writer.println(z + 38);
+				writer.println(sizex);
+				writer.println(sizey);
+				writer.println(sizez);
+			}
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}

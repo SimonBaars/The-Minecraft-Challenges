@@ -1,55 +1,46 @@
 package modid.challenge.core;
 
-import java.io.InputStream;
+import java.io.BufferedReader;
 import java.io.InputStreamReader;
-import java.net.URL;
-import java.net.URLConnection;
-
-import net.minecraft.client.Minecraft;
-import net.minecraft.util.text.TextComponentString;
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
 
 public class UpdateThread extends Thread {
-public void run(){
-	String updateMessage = readFile("http://minecraftcreations.com/challenge7.txt");
-	if(updateMessage.equals("1")){
-		if(Minecraft.getMinecraft().thePlayer!=null){
-			Minecraft.getMinecraft().thePlayer.addChatMessage(new TextComponentString("There's a new update for The Minecraft Challenges available. To be able to keep playing, you must download it."));
-		} else {
-			Challenge.updateChecked=false;
-		}
-		}
-	
-	String[] highscores = readFile("http://minecraftcreations.com/scorepostc/highscore.php?player="+Minecraft.getMinecraft().thePlayer.getName()).split(",");
-	if(highscores.length==9){
-		for(int i = 0; i<highscores.length; i++){
-			Challenge.highscores[i]=Integer.parseInt(highscores[i]);
-			//System.out.println(Challenge.highscores[i]+" loaded!");
-		}
-	}
-}
-public static String readFile(String path) {
-	try {
-		String webPage = path;
-		URL url = new URL(webPage);
-		URLConnection urlConnection = url.openConnection();
-		InputStream is = urlConnection.getInputStream();
-		InputStreamReader isr = new InputStreamReader(is);
-
-		int numCharsRead;
-		char[] charArray = new char[1024];
-		StringBuffer sb = new StringBuffer();
-		while ((numCharsRead = isr.read(charArray)) > 0) {
-			sb.append(charArray, 0, numCharsRead);
-		}
-		String result = sb.toString();
-
-		return result;
-	} catch (Exception e) {
-		
-	}
-		return "0";
+	@Override
+	public void run() {
+		String updateMessage = readFile("http://minecraftcreations.com/challenge7.txt");
+		if ("1".equals(updateMessage)) {
+			if (ClientHooks.localPlayer() != null) {
+				ClientHooks.chat("There's a new update for The Minecraft Challenges available. To be able to keep playing, you must download it.");
+			} else {
+				ChallengeMod.updateChecked = false;
 			}
+		}
+		if (ClientHooks.localPlayer() == null) return;
+		String[] highscores = readFile("http://minecraftcreations.com/scorepostc/highscore.php?player="
+			+ ClientHooks.localPlayer().getName().getString()).split(",");
+		if (highscores.length == 9) {
+			for (int i = 0; i < highscores.length; i++) {
+				try {
+					ChallengeMod.highscores[i] = Integer.parseInt(highscores[i].trim());
+				} catch (NumberFormatException ignored) {
+				}
+			}
+		}
+	}
 
-
-
+	public static String readFile(String path) {
+		try {
+			var conn = URI.create(path).toURL().openConnection();
+			conn.setRequestProperty("User-Agent", "Java");
+			try (BufferedReader rd = new BufferedReader(new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
+				StringBuilder result = new StringBuilder();
+				String line;
+				while ((line = rd.readLine()) != null) result.append(line);
+				return result.toString();
+			}
+		} catch (Exception e) {
+			return "";
+		}
+	}
 }

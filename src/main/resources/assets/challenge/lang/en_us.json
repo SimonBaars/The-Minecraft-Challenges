@@ -1,0 +1,17 @@
+{
+  "itemGroup.challenge.challenges": "Challenges",
+  "key.challenge.flap": "Flap",
+  "block.challenge.block_touchable": "Game Over Block",
+  "block.challenge.block_challenge_one": "JumpChallenge",
+  "block.challenge.block_challenge_two": "JumpChallenge - Time Attack",
+  "block.challenge.block_challenge_three": "Arena",
+  "block.challenge.block_challenge_four": "Arena - Madness Mode",
+  "block.challenge.block_challenge_five": "Archery",
+  "block.challenge.block_challenge_six": "Archery - Time Attack",
+  "block.challenge.block_challenge_seven": "King of the Hill",
+  "block.challenge.block_challenge_eight": "Run 'n Dodge",
+  "block.challenge.block_challenge_nine": "Flappy Parcours",
+  "block.challenge.block_black_rock": "BlackRock",
+  "block.challenge.block_chicken_dirt": "Very special dirt",
+  "block.challenge.block_blue_rock": "Not Game Over Block"
+}

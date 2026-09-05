@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "DCD",
+    "BBB",
+    "AAA"
+  ],
+  "key": {
+    "A": "minecraft:stone",
+    "B": "minecraft:sand",
+    "C": "minecraft:diamond_sword",
+    "D": "minecraft:torch"
+  },
+  "result": {
+    "id": "challenge:block_challenge_three"
+  }
+}

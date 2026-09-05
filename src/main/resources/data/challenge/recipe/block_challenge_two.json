@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "CCC",
+    "A A",
+    "B B"
+  ],
+  "key": {
+    "A": "minecraft:oak_planks",
+    "B": "minecraft:oak_fence",
+    "C": "minecraft:glowstone_dust"
+  },
+  "result": {
+    "id": "challenge:block_challenge_two"
+  }
+}

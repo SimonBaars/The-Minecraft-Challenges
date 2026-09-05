@@ -1,27 +1,31 @@
 package modid.challenge.challenges;
 
-import modid.challenge.core.Challenge;
-import net.minecraft.block.Block;
-import net.minecraft.block.material.Material;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.EnumHand;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
+import com.mojang.serialization.MapCodec;
+import modid.challenge.core.ChallengeMod;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.BlockHitResult;
 
-public class BlockChallengeSeven extends Block
-{
-  public BlockChallengeSeven(int i)
-    {
-        super(Material.rock);
-    }
-  public boolean onBlockActivated(World worldIn, BlockPos pos, IBlockState state, EntityPlayer playerIn, EnumHand hand, ItemStack heldItem, EnumFacing side, float hitX, float hitY, float hitZ)
-  {
-	  if(!worldIn.isRemote && Challenge.eventHandler.challenge==null){
-	  new ChallengeSeven(pos.getX(), pos.getY(), pos.getZ());
-	  }
-	  return true;
-  }
+public class BlockChallengeSeven extends Block {
+	public BlockChallengeSeven(BlockBehaviour.Properties properties) {
+		super(properties);
+	}
+
+	@Override
+	protected MapCodec<? extends Block> codec() {
+		return MapCodec.unit(this);
+	}
+
+	@Override
+	protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
+		if (!level.isClientSide() && ChallengeMod.eventHandler.challenge == null) {
+			new ChallengeSeven(pos.getX(), pos.getY(), pos.getZ());
+		}
+		return InteractionResult.SUCCESS;
+	}
 }

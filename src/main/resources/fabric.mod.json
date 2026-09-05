@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "id": "challenge",
+  "version": "${version}",
+  "name": "The Minecraft Challenges",
+  "description": "Challenges in Minecraft with online Leaderboards.",
+  "authors": ["SimJoo", "SimonBaars"],
+  "contact": {
+    "homepage": "https://github.com/SimonBaars/The-Minecraft-Challenges"
+  },
+  "license": "All Rights Reserved",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["modid.challenge.core.ChallengeMod"],
+    "client": ["modid.challenge.client.ChallengeClientMod"]
+  },
+  "mixins": ["challenge.mixins.json"],
+  "depends": {
+    "fabricloader": ">=0.19.5",
+    "minecraft": "~26.2",
+    "java": ">=25",
+    "fabric-api": "*"
+  }
+}

@@ -3,227 +3,158 @@ package modid.challenge.structureloader;
 import java.io.DataInputStream;
 import java.util.zip.GZIPInputStream;
 
-import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.client.Minecraft;
-import net.minecraft.entity.EntityList;
-import net.minecraft.init.Blocks;
-import net.minecraft.nbt.CompressedStreamTools;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagList;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.World;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.NbtAccounter;
+import net.minecraft.nbt.NbtIo;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.Vec3;
 
-public class SchematicStructure extends Structure
-{
-	
+/**
+ * Loads legacy .structure schematics (numeric block ids from 1.8/1.9 era).
+ * Metadata is ignored; ids are mapped through a best-effort legacy table.
+ */
+public class SchematicStructure extends Structure {
 	public boolean isLive;
-	public SchematicStructure(String fileName)
-	{
-		super(fileName);
-		this.isLive=false;
-	}
-
-	// Blocks stored [y][z][x]
 	private Block[][][] blocks;
 	private int[][][] blockData;
+	private CompoundTag[] entities;
+	private CompoundTag[] tileEntities;
 
-	private NBTTagCompound[] entities;
-	private NBTTagCompound[] tileEntities;
-	private int blocksAdded;
-	World serverWorld; World world; int posX,  posY,  posZ;
-	BlockPlacer blockPlacer2;
-	BlockPlacer blockPlacer;
-	Vec3d harvestPos;
-
+	public SchematicStructure(String fileName) {
+		super(fileName);
+		this.isLive = false;
+	}
 
 	@Override
-	public void process(World serverWorld, World world, int posX, int posY, int posZ)
-	{
-		this.serverWorld=serverWorld;this.world=world;this.posX=posX;this.posY=posY;this.posZ=posZ;
-		//Minecraft.getMinecraft().thePlayer.sendChatMessage("Please be patient, I'm just creating "+(height*width*length)+" blocks for the structure...");
-		Block blk = Blocks.air;
-		   // Make a position.
-		   BlockPos pos0 = new BlockPos(posX,posY,posZ);
-		   // Get the default state(basically metadata 0)
-		   IBlockState state0=blk.getDefaultState();
-		   // set the block
-		   serverWorld.setBlockState(pos0, state0);
-		   world.setBlockState(pos0, state0);
-		blocksAdded=0;
-		posX-=length/2-1;
-		posZ-=width/2-1;
-		Vec3d harvestPos = new Vec3d(posX + 0.5, posY, posZ + 0.5);
-		BlockPlacer blockPlacer2 = new BlockPlacer(serverWorld,isLive);
-		//BlockPlacer blockPlacer = new BlockPlacer(world,isLive);
-		//this.blockPlacer=blockPlacer;this.blockPlacer2=blockPlacer2;
-		this.harvestPos=harvestPos;
-		
-		//System.out.println("Blocks");
-		for (int y = 0; y < this.height; y++)
-		{
-			for (int z = 0; z < this.width; z++)
-			{
-				for (int x = 0; x < this.length; x++)
-				{
-					//System.out.println("DATA=="+this.blocks[y][z][x]+blockPlacer+this.getCenterPos()+harvestPos);
-					if (this.blockMode.equals("overlay") && this.blocks[y][z][x] == Blocks.air) continue;
-					StructureUtils.setBlock(blockPlacer2, this.blocks[y][z][x].getStateFromMeta(this.blockData[y][z][x]), new BlockPos(x, y, z), this.getCenterPos(), harvestPos);
-					//if(StructureUtils.setBlock(blockPlacer, this.blocks[y][z][x].getStateFromMeta(this.blockData[y][z][x]), new BlockPos(x, y, z), this.getCenterPos(), harvestPos)){
-					//	blocksAdded++;
-					//}
+	public void process(Level serverWorld, Level world, int posX, int posY, int posZ) {
+		BlockPos pos0 = new BlockPos(posX, posY, posZ);
+		serverWorld.setBlock(pos0, Blocks.AIR.defaultBlockState(), 3);
+		posX -= length / 2 - 1;
+		posZ -= width / 2 - 1;
+		Vec3 harvestPos = new Vec3(posX + 0.5, posY, posZ + 0.5);
+		BlockPlacer blockPlacer2 = new BlockPlacer(serverWorld, isLive);
+		for (int y = 0; y < this.height; y++) {
+			for (int z = 0; z < this.width; z++) {
+				for (int x = 0; x < this.length; x++) {
+					Block block = this.blocks[y][z][x];
+					if (this.blockMode.equals("overlay") && block == Blocks.AIR) continue;
+					BlockState state = block.defaultBlockState();
+					StructureUtils.setBlock(blockPlacer2, state, new BlockPos(x, y, z), this.getCenterPos(), harvestPos);
 				}
 			}
 		}
 	}
-	
-	public void initSingleBlockPlacer(World serverWorld, World world, int posX, int posY, int posZ){
-		this.serverWorld=serverWorld;this.world=world;this.posX=posX;this.posY=posY;this.posZ=posZ;
-		//Minecraft.getMinecraft().thePlayer.sendChatMessage("Please be patient, I'm just creating "+(height*width*length)+" blocks for the structure...");
-		Block blk = Blocks.air;
-		
-		   // Make a position.
-		   BlockPos pos0 = new BlockPos(this.posX,this.posY,this.posZ);
-		   // Get the default state(basically metadata 0)
-		   IBlockState state0=blk.getDefaultState();
-		   // set the block
-		   this.serverWorld.setBlockState(pos0, state0);
-		   this.world.setBlockState(pos0, state0);
-		blocksAdded=0;
-		
-		this.posX-=length/2-1;
-		this.posZ-=width/2-1;
-		
-		
-	this.harvestPos = new Vec3d(this.posX + 0.5, this.posY, this.posZ + 0.5);
-		this.blockPlacer2 = new BlockPlacer(serverWorld,isLive);
-		this.blockPlacer = new BlockPlacer(world,isLive);
-	}
-		
-	public void postProcess(){
-		//System.out.println("Structure Processed!");
-		try{
-		for (NBTTagCompound tileEntity : this.tileEntities)
-			StructureUtils.setTileEntity(serverWorld, TileEntity.createTileEntity(Minecraft.getMinecraft().getIntegratedServer(),tileEntity), this.getCenterPos(), harvestPos);
-		
-		for (NBTTagCompound entity : this.entities)
-			StructureUtils.setEntity(serverWorld, EntityList.createEntityFromNBT(entity, serverWorld), this.getCenterPos(), harvestPos);
-		
-		for (NBTTagCompound tileEntity : this.tileEntities)
-			StructureUtils.setTileEntity(world, TileEntity.createTileEntity(Minecraft.getMinecraft().getIntegratedServer(), tileEntity), this.getCenterPos(), harvestPos);
-		
-		for (NBTTagCompound entity : this.entities)
-			StructureUtils.setEntity(world, EntityList.createEntityFromNBT(entity, world), this.getCenterPos(), harvestPos);
-		
-		if (this.blockUpdate){
-			//blockPlacer2.update();
-			blockPlacer.update();
-		}
-		} catch(Exception e){
-			
-		}
-		
-		//Minecraft.getMinecraft().thePlayer.sendChatMessage("I just created "+blocksAdded+" out of "+(height*width*length)+" blocks in this structure!");
-	}
-	
-	public void showOutline(int x, int modifierx, int y,int modifiery, int z, int modifierz, World worldIn){
-		for(int i=0; i<width; i++){ for(int j = 0; j<height; j++){ for(int k = 0; k<length; k++){ 
-			if(i==0||j==0||k==0){
-				if(i==modifierx&&j==modifiery&&k==modifierz) continue;
-			Block blk = Blocks.glass;
-			   // Make a position.
-			   BlockPos pos0 = new BlockPos(x-i+modifierx,y+j+modifiery,z-k+modifierz);
-			   // Get the default state(basically metadata 0)
-			   IBlockState state0=blk.getDefaultState();
-			   // set the block
-			   worldIn.setBlockState(pos0, state0);
-
-			//worldIn.spawnEntityInWorld(new EntitySnowball(worldIn, x+i,y+j,z+k)); 
-			}}} }
-	}
-	
-	public void removeOutline(int x, int modifierx, int y,int modifiery, int z, int modifierz, World worldIn){
-		for(int i=0; i<width; i++){ for(int j = 0; j<height; j++){ for(int k = 0; k<length; k++){ 
-			if(i==0||j==0||k==0){
-			if(i==modifierx&&j==modifiery&&k==modifierz) continue;
-			Block blk = Blocks.air;
-			   // Make a position.
-			   BlockPos pos0 = new BlockPos(x-i+modifierx,y+j+modifiery,z-k+modifierz);
-			   // Get the default state(basically metadata 0)
-			   IBlockState state0=blk.getDefaultState();
-			   // set the block
-			   worldIn.setBlockState(pos0, state0);
-
-			//worldIn.spawnEntityInWorld(new EntitySnowball(worldIn, x+i,y+j,z+k)); 
-			}}} }
-	}
-
 
 	@Override
-	public void readFromFile()
-	{
-		NBTTagCompound nbtTagCompound = null;
-		DataInputStream dataInputStream;
-		try
-		{
-			dataInputStream = new DataInputStream(new GZIPInputStream(this.fileStream));
-			nbtTagCompound = CompressedStreamTools .read(dataInputStream);
+	public void readFromFile() {
+		CompoundTag nbtTagCompound;
+		try {
+			DataInputStream dataInputStream = new DataInputStream(new GZIPInputStream(this.fileStream));
+			nbtTagCompound = NbtIo.read(dataInputStream, NbtAccounter.unlimitedHeap());
 			dataInputStream.close();
-		}
-		catch (Exception e)
-		{
-			System.err.println("Instant Massive Structures Mod: Error loading structure '" + this.fileName + "'");
+		} catch (Exception e) {
+			System.err.println("Challenge Mod: Error loading structure '" + this.fileName + "'");
+			this.length = this.width = this.height = 1;
+			this.blocks = new Block[1][1][1];
+			this.blocks[0][0][0] = Blocks.STONE;
+			this.blockData = new int[1][1][1];
+			this.entities = new CompoundTag[0];
+			this.tileEntities = new CompoundTag[0];
+			this.initCenterPos();
 			return;
 		}
 
-		// In schematics, length is z and width is x. Here it is reversed.
-		this.length = nbtTagCompound.getShort("Width");
-		this.width = nbtTagCompound.getShort("Length");
-		this.height = nbtTagCompound.getShort("Height");
-
-		int size = this.length * this.width * this.height;
-		/*if (size > STRUCTURE_BLOCK_LIMIT)
-		{
-			System.err.println("Instant Massive Structures Mod: Error loading structure. The structure '" + this.fileName + "' (" + size + " blocks) exceeds the " + STRUCTURE_BLOCK_LIMIT + " block limit");
-			return;
-		}*/
+		this.length = nbtTagCompound.getShortOr("Width", (short) 1);
+		this.width = nbtTagCompound.getShortOr("Length", (short) 1);
+		this.height = nbtTagCompound.getShortOr("Height", (short) 1);
 
 		this.blocks = new Block[this.height][this.width][this.length];
 		this.blockData = new int[this.height][this.width][this.length];
 
-		byte[] blockIdsByte = nbtTagCompound.getByteArray("Blocks");
-		byte[] blockDataByte = nbtTagCompound.getByteArray("Data");
+		byte[] blockIdsByte = nbtTagCompound.getByteArray("Blocks").orElse(new byte[0]);
+		byte[] blockDataByte = nbtTagCompound.getByteArray("Data").orElse(new byte[blockIdsByte.length]);
 		int x = 1, y = 1, z = 1;
-		for (int i = 0; i < blockIdsByte.length; i++)
-		{
-			int blockId = (short) (blockIdsByte[i] & 0xFF);
-			this.blocks[y - 1][z - 1][x - 1] = Block.getBlockById(blockId);
-			this.blockData[y - 1][z - 1][x - 1] = blockDataByte[i];
+		for (int i = 0; i < blockIdsByte.length; i++) {
+			int blockId = blockIdsByte[i] & 0xFF;
+			this.blocks[y - 1][z - 1][x - 1] = LegacyBlocks.fromId(blockId);
+			this.blockData[y - 1][z - 1][x - 1] = i < blockDataByte.length ? blockDataByte[i] : 0;
 			x++;
-			if (x > this.length)
-			{
+			if (x > this.length) {
 				x = 1;
 				z++;
 			}
-			if (z > this.width)
-			{
+			if (z > this.width) {
 				z = 1;
 				y++;
 			}
 		}
 
-		NBTTagList entityList = nbtTagCompound.getTagList("Entities", 10);
-		this.entities = new NBTTagCompound[entityList.tagCount()];
-		for (int i = 0; i < entityList.tagCount(); i++)
-			this.entities[i] = entityList.getCompoundTagAt(i);
+		ListTag entityList = nbtTagCompound.getListOrEmpty("Entities");
+		this.entities = new CompoundTag[entityList.size()];
+		for (int i = 0; i < entityList.size(); i++) {
+			this.entities[i] = entityList.getCompoundOrEmpty(i);
+		}
 
-		NBTTagList tileEntityList = nbtTagCompound.getTagList("TileEntities", 10);
-		this.tileEntities = new NBTTagCompound[tileEntityList.tagCount()];
-		for (int i = 0; i < tileEntityList.tagCount(); i++)
-			this.tileEntities[i] = tileEntityList.getCompoundTagAt(i);
+		ListTag tileEntityList = nbtTagCompound.getListOrEmpty("TileEntities");
+		this.tileEntities = new CompoundTag[tileEntityList.size()];
+		for (int i = 0; i < tileEntityList.size(); i++) {
+			this.tileEntities[i] = tileEntityList.getCompoundOrEmpty(i);
+		}
 
 		this.initCenterPos();
+	}
+
+	/** Best-effort 1.8/1.9 numeric id → modern block. Unknown ids become stone. */
+	public static final class LegacyBlocks {
+		private LegacyBlocks() {}
+
+		public static Block fromId(int id) {
+			return switch (id) {
+				case 0 -> Blocks.AIR;
+				case 1 -> Blocks.STONE;
+				case 2 -> Blocks.GRASS_BLOCK;
+				case 3 -> Blocks.DIRT;
+				case 4 -> Blocks.COBBLESTONE;
+				case 5 -> Blocks.OAK_PLANKS;
+				case 7 -> Blocks.BEDROCK;
+				case 8, 9 -> Blocks.WATER;
+				case 10, 11 -> Blocks.LAVA;
+				case 12 -> Blocks.SAND;
+				case 13 -> Blocks.GRAVEL;
+				case 17 -> Blocks.OAK_LOG;
+				case 18 -> Blocks.OAK_LEAVES;
+				case 20 -> Blocks.GLASS;
+				case 24 -> Blocks.SANDSTONE;
+				case 35 -> Blocks.WOOL.white();
+				case 41 -> Blocks.GOLD_BLOCK;
+				case 42 -> Blocks.IRON_BLOCK;
+				case 44 -> Blocks.SMOOTH_STONE_SLAB;
+				case 45 -> Blocks.BRICKS;
+				case 48 -> Blocks.MOSSY_COBBLESTONE;
+				case 49 -> Blocks.OBSIDIAN;
+				case 50 -> Blocks.TORCH;
+				case 53 -> Blocks.OAK_STAIRS;
+				case 64 -> Blocks.OAK_DOOR;
+				case 65 -> Blocks.LADDER;
+				case 67 -> Blocks.COBBLESTONE_STAIRS;
+				case 85 -> Blocks.OAK_FENCE;
+				case 89 -> Blocks.GLOWSTONE;
+				case 98 -> Blocks.STONE_BRICKS;
+				case 112 -> Blocks.NETHER_BRICKS;
+				case 133 -> Blocks.EMERALD_BLOCK;
+				case 159 -> Blocks.TERRACOTTA;
+				default -> {
+					// Prefer registry id if it happens to align; otherwise stone
+					Block byRaw = BuiltInRegistries.BLOCK.byId(id);
+					yield byRaw != null && byRaw != Blocks.AIR ? byRaw : Blocks.STONE;
+				}
+			};
+		}
 	}
 }
