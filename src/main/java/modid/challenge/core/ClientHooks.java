@@ -39,10 +39,19 @@ public final class ClientHooks {
 		return server == null ? null : server.overworld();
 	}
 
+	/** Safe from server tick / worker threads — schedules onto the client thread. */
 	public static void chat(String message) {
-		LocalPlayer player = localPlayer();
-		if (player != null) {
-			player.sendSystemMessage(Component.literal(message));
+		Minecraft mc = Minecraft.getInstance();
+		Runnable send = () -> {
+			LocalPlayer player = mc.player;
+			if (player != null) {
+				player.sendSystemMessage(Component.literal(message));
+			}
+		};
+		if (mc.isSameThread()) {
+			send.run();
+		} else {
+			mc.execute(send);
 		}
 	}
 

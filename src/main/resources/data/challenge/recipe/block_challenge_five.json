@@ -13,6 +13,7 @@
     "D": "minecraft:arrow"
   },
   "result": {
-    "id": "challenge:block_challenge_five"
+    "id": "challenge:block_challenge_five",
+    "count": 1
   }
 }

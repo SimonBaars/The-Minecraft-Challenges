@@ -12,6 +12,7 @@
     "C": "minecraft:glowstone_dust"
   },
   "result": {
-    "id": "challenge:block_challenge_two"
+    "id": "challenge:block_challenge_two",
+    "count": 1
   }
 }

@@ -13,6 +13,7 @@
     "D": "minecraft:torch"
   },
   "result": {
-    "id": "challenge:block_challenge_four"
+    "id": "challenge:block_challenge_four",
+    "count": 1
   }
 }

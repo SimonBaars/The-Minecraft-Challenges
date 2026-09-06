@@ -60,11 +60,12 @@ public class ScoreThread extends Thread {
 				return true;
 			}
 			String challengenumString = challengenum < 10 ? (" " + challengenum) : ("" + challengenum);
-			ClientHooks.chat(postScore(
+			String postResult = postScore(
 				"http://minecraftcreations.com/scorepostc/",
 				"username", encrypt(player.getName().getString(), "1ZcNZFIvQkbBrs" + challengenumString),
 				"score", encrypt("" + score, "13FRxiEjtS6Cir" + challengenumString),
-				"id", encrypt("" + challengenum, "1Q58jgSh3jLUUQ4V")));
+				"id", encrypt("" + challengenum, "1Q58jgSh3jLUUQ4V"));
+			ClientHooks.chat(sanitizeChat(postResult));
 			ClientHooks.chat("Check the leaderboards online at: ");
 			ClientHooks.chat("minecraftcreations.com/c" + challengenum);
 			ClientHooks.chat("Here you can see your ranking vs the rest of the world!");
@@ -84,6 +85,21 @@ public class ScoreThread extends Thread {
 			case 8 -> score > 2600;
 			default -> false;
 		};
+	}
+
+
+	private static String sanitizeChat(String msg) {
+		if (msg == null || msg.isBlank()) {
+			return "Could not post your score online.";
+		}
+		String trimmed = msg.trim();
+		if (trimmed.startsWith("<!DOCTYPE") || trimmed.startsWith("<html") || trimmed.contains("<body")) {
+			return "Could not post your score online (leaderboard host returned a web page).";
+		}
+		if (trimmed.length() > 200) {
+			return trimmed.substring(0, 200) + "...";
+		}
+		return trimmed;
 	}
 
 	public String encrypt(String input, String key) {

@@ -10,6 +10,7 @@
     "B": "minecraft:oak_fence"
   },
   "result": {
-    "id": "challenge:block_challenge_one"
+    "id": "challenge:block_challenge_one",
+    "count": 1
   }
 }
