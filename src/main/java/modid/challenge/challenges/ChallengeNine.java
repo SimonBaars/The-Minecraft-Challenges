@@ -5,7 +5,6 @@ import java.nio.file.Files;
 
 import modid.challenge.core.ChallengeMod;
 import modid.challenge.core.ClientHooks;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.Difficulty;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.Blocks;
@@ -22,8 +21,10 @@ public class ChallengeNine extends Challenges {
 		super(x, y, z, GameType.ADVENTURE, Difficulty.PEACEFUL);
 		showScore();
 		firstRow();
-		teleportPlayers(x, y + 1, z - (runwaySize / 2));
-		waitTime = 200;
+		// Face north (-Z) so flap moveRelative pushes into the course; Forge spawned at y+3.
+		teleportPlayers(x, y + 2, z - (runwaySize / 2), 180.0F);
+		waitTime = 50; // Forge pace; course only advances when player is ahead
+		roomGraceMs = 4000;
 		resetPlayer();
 		ClientHooks.chat("Press G to flap your wings");
 	}
@@ -66,22 +67,51 @@ public class ChallengeNine extends Challenges {
 
 	@Override
 	boolean closeToGameRoom(int howClose, int x, int y, int z) {
+		// Match Forge room; +2 slack on X/Y so bobbing / edge standing does not instant-fail
 		x = x - this.x + (runwayWidth / 2) - 1 - howClose;
 		y = y - this.y + 2 - howClose;
 		z = z - this.z + ((int) (5.00 * (runwaySize / 4.00))) + 1 + getScore() - howClose;
-		return x >= 0 && x <= runwayWidth + (2 * howClose) && y >= 0 && y <= maxHeight + (2 * howClose) && z >= 0 && z <= runwaySize + 2 + (2 * howClose);
+		return x >= -2 && x <= runwayWidth + 2 + (2 * howClose) && y >= 0 && y <= maxHeight + 2 + (2 * howClose) && z >= 0 && z <= runwaySize + 2 + (2 * howClose);
+	}
+
+	/** Forge: only advance the parcours when the player has moved ahead (-Z). */
+	private boolean doIncreaseDistance() {
+		var local = ClientHooks.localPlayer();
+		if (local == null) return false;
+		return ((int) local.getZ()) < z - getScore() - (runwaySize / 2);
 	}
 
 	@Override
 	public boolean run() {
 		if (ClientHooks.localPlayer() == null) return false;
 		if (resetPlayer()) return true;
-		placeRow(jumpRow == 0);
-		increaseScore();
-		showScore();
-		jumpRow++;
-		if (jumpRow >= rowSize) jumpRow = 0;
-		register();
+		int increase = 0;
+		while (doIncreaseDistance()) {
+			increase++;
+			if (increase > runwaySize) {
+				System.out.println("Couldn't keep up! Please make sure your pc can handle this challenge!");
+				endChallengeForAllPlayers();
+				return true;
+			}
+			var local = ClientHooks.localPlayer();
+			if (local != null) {
+				local.setSprinting(false);
+			}
+			placeRow(jumpRow == 0);
+			increaseScore();
+			showScore();
+			waitTime--;
+			int score = getScore();
+			if (score == 150 || score == 250 || score == 350 || score == 450 || score == 550) {
+				openingSize--;
+			}
+			if (score % 98 == 0 && rowSize > 15) {
+				rowSize--;
+			}
+			jumpRow++;
+			if (jumpRow >= rowSize) jumpRow = 0;
+			register();
+		}
 		return false;
 	}
 

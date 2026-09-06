@@ -58,11 +58,35 @@ Creative tab (9 textured starters): `playtest-shots/creative-tab.webp` (prior). 
 | Recipes 6–9 | N/A | Legacy Forge only registered crafts for challenges 1–5 |
 | Full crafting grid craft | **Partial** | Unlock verified; in-GUI craft click not cleanly captured |
 | Online leaderboard | **Broken host** | `minecraftcreations.com` returns for-sale HTML (sanitized in code for next launch) |
-| Sustained full runs | **Improved** | Jump ~15s score 20; King 20s+ no early Game Over (teleport + bounds fix) |
+| Sustained full runs | **Pass** | Jump/King prior; Archery 12s+; Flappy idle 13s+; Arena ~13s combat |
+
+
+
+## Sustained Archery / Flappy / Arena (2026-09-05 evening PT / 2026-09-06 ~02:00 UTC)
+
+### Root causes (this pass)
+1. **Flappy / Run** port advanced the course every tick instead of Forge’s `doIncreaseDistance()` (only when player is ahead on −Z). Idle/slow runs left the sliding room in ~4s → instant Game Over.
+2. **Teleport sync**: prefer `ServerPlayer.connection.teleport(...)` over `teleportTo` alone.
+3. **Archery** room padding was tight on the 13×13 watchtower deck; first chicken wave could land before a 10s idle shot (spawn cadence lengthened).
+
+### Fixes
+- Restore Forge `doIncreaseDistance` for ChallengeNine (Flappy) and ChallengeEight (Run).
+- Face Flappy/Run spawns north (yaw 180); longer room grace; Flappy spawn `y+2`.
+- Archery/Archery-TA: padded `closeToGameRoom`, spawn `y+26`, `waitTime=500`, delayed first chicken (`toGoTicks=40`).
+- Arena/Madness: grace + slight bound pad; `connection.teleport` helper with optional yaw.
+
+### Sustained playtest evidence
+| Challenge | Result | Evidence |
+|-----------|--------|----------|
+| 5 Archery | **12s+** on tower, Score sidebar active (bow/arrows), no room Game Over | `playtest-shots/archery-sustain-t0.png`, `archery-sustain-6s.png`, `archery-sustain-12s.png` |
+| 9 Flappy | **13s+ idle** Score still 0 / sidebar active (course does not advance until ahead) | `playtest-shots/flappy-sustain-t0.png`, `flappy-sustain-5s.png`, `flappy-sustain-10s.png`, `flappy-sustain-12s.png` |
+| 3 Arena | **~13s** Score 1 in arena before combat death (not instant room exit) | `playtest-shots/arena-sustain-t0.png`, `arena-sustain-10s.png` |
+
+Prior Jump ~15s / King 20s+ still valid. Active Flappy scoring run earlier reached score **59** before a skill/wall death (~8s) — confirms advance-on-ahead path works.
 
 ## Still broken / open
 
-- Sustained `/challenge` after teleport/bounds fix: Jump ~15s / King 20s+ verified; skill deaths and pause-cancel still end runs. Leaderboard host still parked.
+- Sustained `/challenge`: Jump/King/Archery/Flappy/Arena verified 10s+ (see tables). Skill deaths and pause-cancel still end runs. Leaderboard host still parked.
 - Leaderboard posting cannot succeed while the legacy host is a parked page (chat spam fixed in source; needs client restart to pick up).
 - Pause-during-run cancel verified (Escape ends challenge). Exhaustive survival crafting of all 5 recipes not filmed this pass.
 - Night Vision (or any potion) aborts challenges by design (`resetPlayer`); do not use NV for playtests.

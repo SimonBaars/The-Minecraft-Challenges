@@ -114,13 +114,18 @@ public abstract class Challenges {
 
 
 	protected void teleportPlayers(double px, double py, double pz) {
+		teleportPlayers(px, py, pz, Float.NaN);
+	}
+
+	protected void teleportPlayers(double px, double py, double pz, float yaw) {
 		this.startPosX = px;
 		this.startPosY = py;
 		this.startPosZ = pz;
 		this.hasStartPos = true;
 		this.startedAtMs = System.currentTimeMillis();
 		for (ServerPlayer player : players) {
-			ClientHooks.teleportPlayer(player, px, py, pz);
+			float useYaw = Float.isNaN(yaw) ? player.getYRot() : yaw;
+			ClientHooks.teleportPlayer(player, px, py, pz, useYaw, player.getXRot());
 		}
 	}
 

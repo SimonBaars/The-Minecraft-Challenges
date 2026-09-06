@@ -23,8 +23,9 @@ public class ChallengeEight extends Challenges {
 		super(x, y, z, GameType.ADVENTURE, Difficulty.PEACEFUL);
 		showScore();
 		firstRow();
-		teleportPlayers(x, y + 1, z - (runwaySize / 2));
-		waitTime = 200;
+		teleportPlayers(x, y + 1, z - (runwaySize / 2), 180.0F);
+		waitTime = 100;
+		roomGraceMs = 4000;
 		resetPlayer();
 	}
 
@@ -64,19 +65,33 @@ public class ChallengeEight extends Challenges {
 		x = x - this.x + (runwayWidth / 2) - howClose;
 		y = y - this.y + 2 - howClose;
 		z = z - this.z + ((int) (5.00 * (runwaySize / 4.00))) + 1 + getScore() - howClose;
-		return x >= 0 && x <= runwayWidth + 2 + (2 * howClose) && y >= 0 && y <= maxHeight + 2 + (2 * howClose) && z >= 0 && z <= runwaySize + 2 + (2 * howClose);
+		return x >= -1 && x <= runwayWidth + 2 + (2 * howClose) && y >= 0 && y <= maxHeight + 2 + (2 * howClose) && z >= 0 && z <= runwaySize + 2 + (2 * howClose);
+	}
+
+	private boolean doIncreaseDistance() {
+		var local = ClientHooks.localPlayer();
+		if (local == null) return false;
+		return ((int) local.getZ()) < z - getScore() - (runwaySize / 2);
 	}
 
 	@Override
 	public boolean run() {
 		if (ClientHooks.localPlayer() == null) return false;
 		if (resetPlayer()) return true;
-		placeRow(jumpRow == 0);
-		increaseScore();
-		showScore();
-		jumpRow++;
-		if (jumpRow >= rowSize) jumpRow = 0;
-		register();
+		int increase = 0;
+		while (doIncreaseDistance()) {
+			increase++;
+			if (increase > runwaySize) {
+				endChallengeForAllPlayers();
+				return true;
+			}
+			placeRow(jumpRow == 0);
+			increaseScore();
+			showScore();
+			jumpRow++;
+			if (jumpRow >= rowSize) jumpRow = 0;
+			register();
+		}
 		return false;
 	}
 

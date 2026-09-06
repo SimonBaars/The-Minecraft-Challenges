@@ -19,6 +19,12 @@ loom {
 			sourceSet sourceSets.main
 		}
 	}
+	runs {
+		client {
+			programArgs '--quickPlaySingleplayer', 'chalplay'
+			vmArgs '-Xmx1280m', '-Djava.awt.headless=false'
+		}
+	}
 }
 
 dependencies {

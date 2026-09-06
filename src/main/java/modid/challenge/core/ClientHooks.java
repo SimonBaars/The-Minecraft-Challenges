@@ -100,7 +100,18 @@ public final class ClientHooks {
 
 	/** Server-authoritative teleport that syncs the client (avoids "moved wrongly"). */
 	public static void teleportPlayer(ServerPlayer player, double x, double y, double z) {
-		player.teleportTo(x, y, z);
+		teleportPlayer(player, x, y, z, player.getYRot(), player.getXRot());
+	}
+
+	public static void teleportPlayer(ServerPlayer player, double x, double y, double z, float yaw, float pitch) {
+		// connection.teleport sends the ClientboundPlayerPositionPacket; teleportTo alone can desync.
+		if (player.connection != null) {
+			player.connection.teleport(x, y, z, yaw, pitch);
+		} else {
+			player.teleportTo(x, y, z);
+			player.setYRot(yaw);
+			player.setXRot(pitch);
+		}
 		player.setDeltaMovement(Vec3.ZERO);
 		player.resetFallDistance();
 		player.hurtMarked = true;

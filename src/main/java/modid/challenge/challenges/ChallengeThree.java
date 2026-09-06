@@ -41,6 +41,8 @@ public class ChallengeThree extends Challenges {
 		showScore();
 		initArena();
 		teleportPlayers(x, y + 2, z);
+		waitTime = 500;
+		roomGraceMs = 4000;
 		resetPlayer();
 	}
 
@@ -83,7 +85,7 @@ public class ChallengeThree extends Challenges {
 		x = x - cornerx - howClose;
 		y = y - this.y - 1 - howClose;
 		z = z - cornerz - howClose;
-		return x >= 0 && x <= fieldx + (2 * howClose) && y >= 0 && y <= fieldy + (2 * howClose) && z >= 0 && z <= fieldz + (2 * howClose) + 2;
+		return x >= -1 && x <= fieldx + 1 + (2 * howClose) && y >= 0 && y <= fieldy + 2 + (2 * howClose) && z >= -1 && z <= fieldz + 3 + (2 * howClose);
 	}
 
 	@Override

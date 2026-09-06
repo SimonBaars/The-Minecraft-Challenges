@@ -28,16 +28,18 @@ public class ChallengeFive extends Challenges {
 	public ArrayList<Entity> activeMonsters = new ArrayList<>();
 	int wave = 0;
 	final int nWaves = 20;
-	private int toGoTicks = 10;
+	private int toGoTicks = 40; // ~20s before first chicken @ waitTime 500
 
 
 	public ChallengeFive(int x, int y, int z) {
 		super(x, y, z, GameType.SURVIVAL, Difficulty.PEACEFUL);
 		showScore();
 		initArena();
-		teleportPlayers(x, y + 27, z);
+		// Stand on watchtower deck (height 30 schematic; room Y anchored at y+23)
+		teleportPlayers(x, y + 26, z);
+		waitTime = 500;
+		roomGraceMs = 4000;
 		resetPlayer();
-
 	}
 
 	void initArena() {
@@ -83,11 +85,11 @@ public class ChallengeFive extends Challenges {
 	boolean closeToGameRoom(int howClose, int x, int y, int z) {
 		int tx = Math.max(4, towersizex);
 		int tz = Math.max(4, towersizez);
-		x = x - this.x + (tx / 2) - howClose;
+		// Pad X/Z so edge of 13x13 deck + client/server float desync does not instant-fail
+		x = x - this.x + (tx / 2) + 2 - howClose;
 		y = y - this.y - 23 - howClose;
-		z = z - this.z + (tz / 2) - howClose;
-		// Slightly taller than forge so landing / jump bobbing does not instantly fail
-		return x >= 0 && x <= tx + (2 * howClose) && y >= 0 && y <= 8 + (2 * howClose) && z >= 0 && z <= tz + (2 * howClose);
+		z = z - this.z + (tz / 2) + 2 - howClose;
+		return x >= 0 && x <= tx + 4 + (2 * howClose) && y >= 0 && y <= 12 + (2 * howClose) && z >= 0 && z <= tz + 4 + (2 * howClose);
 	}
 
 	@Override
