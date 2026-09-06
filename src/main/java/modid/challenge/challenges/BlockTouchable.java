@@ -32,8 +32,10 @@ public class BlockTouchable extends Block {
 
 	@Override
 	protected void entityInside(BlockState state, Level level, BlockPos pos, Entity entity, net.minecraft.world.entity.InsideBlockEffectApplier effectApplier, boolean unknown) {
-		if (ChallengeMod.eventHandler.challenge != null
-			&& (ChallengeMod.eventHandler.challenge.getScore() > 1 || ChallengeMod.eventHandler.challenge instanceof ChallengeSeven)
+		var challenge = ChallengeMod.eventHandler.challenge;
+		if (challenge != null
+			&& !challenge.inRoomGrace()
+			&& (challenge.getScore() > 1 || challenge instanceof ChallengeSeven)
 			&& !level.isClientSide()) {
 			if (entity instanceof Player player) {
 				ChallengeMod.eventHandler.challenge.endChallenge(player);

@@ -9,6 +9,7 @@ import net.minecraft.client.server.IntegratedServer;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.Difficulty;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
@@ -94,6 +95,15 @@ public final class ClientHooks {
 			return null;
 		}
 		return server.getPlayerList().getPlayerByName(name);
+	}
+
+
+	/** Server-authoritative teleport that syncs the client (avoids "moved wrongly"). */
+	public static void teleportPlayer(ServerPlayer player, double x, double y, double z) {
+		player.teleportTo(x, y, z);
+		player.setDeltaMovement(Vec3.ZERO);
+		player.resetFallDistance();
+		player.hurtMarked = true;
 	}
 
 	public static void setDifficulty(Difficulty difficulty) {

@@ -38,6 +38,12 @@ public abstract class Challenges {
 	protected ArrayList<ServerPlayer> deadPlayers = new ArrayList<>();
 	protected ArrayList<Item> items = new ArrayList<>();
 	public long lastTickTime = 0;
+	protected long startedAtMs = System.currentTimeMillis();
+	/** Ignore / soft-handle room exits while teleport sync settles. */
+	protected int roomGraceMs = 2500;
+	protected double startPosX, startPosY, startPosZ;
+	protected boolean hasStartPos = false;
+
 	protected GameType defGameType;
 	public int waitTime = 2000;
 	public int numberOfPlayers;
@@ -106,6 +112,22 @@ public abstract class Challenges {
 		return -(score / 10);
 	}
 
+
+	protected void teleportPlayers(double px, double py, double pz) {
+		this.startPosX = px;
+		this.startPosY = py;
+		this.startPosZ = pz;
+		this.hasStartPos = true;
+		this.startedAtMs = System.currentTimeMillis();
+		for (ServerPlayer player : players) {
+			ClientHooks.teleportPlayer(player, px, py, pz);
+		}
+	}
+
+	protected boolean inRoomGrace() {
+		return System.currentTimeMillis() - startedAtMs < roomGraceMs;
+	}
+
 	public boolean resetPlayer() {
 		if (y > 150) {
 			ClientHooks.chat("You cannot create this challenge this high...");
@@ -141,10 +163,20 @@ public abstract class Challenges {
 				removeThisChallenge();
 				return true;
 			}
-			if (alivePlayers.contains(player) && !withinGameRoom((int) player.getX(), (int) player.getY(), (int) player.getZ())) {
-				System.out.println("You left the gameroom? (this might be by error)");
-				endChallenge(player);
-				return true;
+			if (alivePlayers.contains(player)) {
+				int px = (int) Math.floor(player.getX());
+				int py = (int) Math.floor(player.getY());
+				int pz = (int) Math.floor(player.getZ());
+				if (!withinGameRoom(px, py, pz)) {
+					if (inRoomGrace() && hasStartPos) {
+						System.out.println("Outside gameroom during grace — re-teleporting to start");
+						ClientHooks.teleportPlayer(player, startPosX, startPosY, startPosZ);
+					} else {
+						System.out.println("You left the gameroom? (this might be by error) at " + px + "," + py + "," + pz);
+						endChallenge(player);
+						return true;
+					}
+				}
 			}
 		}
 		var local = ClientHooks.localPlayer();

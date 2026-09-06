@@ -5,7 +5,6 @@ import java.nio.file.Files;
 
 import modid.challenge.core.ChallengeMod;
 import modid.challenge.core.ClientHooks;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Difficulty;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.Blocks;
@@ -23,12 +22,10 @@ public class ChallengeEight extends Challenges {
 	public ChallengeEight(int x, int y, int z) {
 		super(x, y, z, GameType.ADVENTURE, Difficulty.PEACEFUL);
 		showScore();
-		for (ServerPlayer player : players) {
-			player.snapTo(x, y + 3, z - (runwaySize / 2));
-		}
-		waitTime = 100;
-		resetPlayer();
 		firstRow();
+		teleportPlayers(x, y + 1, z - (runwaySize / 2));
+		waitTime = 200;
+		resetPlayer();
 	}
 
 	void firstRow() {
@@ -64,10 +61,10 @@ public class ChallengeEight extends Challenges {
 
 	@Override
 	boolean closeToGameRoom(int howClose, int x, int y, int z) {
-		x = x - this.x + (runwayWidth / 2) + 1 - howClose;
+		x = x - this.x + (runwayWidth / 2) - howClose;
 		y = y - this.y + 2 - howClose;
 		z = z - this.z + ((int) (5.00 * (runwaySize / 4.00))) + 1 + getScore() - howClose;
-		return x >= 0 && x <= runwayWidth + 2 + (2 * howClose) && y >= 0 && y <= maxHeight + 2 + (2 * howClose) && z >= 0 && z <= runwaySize + 1 + (2 * howClose);
+		return x >= 0 && x <= runwayWidth + 2 + (2 * howClose) && y >= 0 && y <= maxHeight + 2 + (2 * howClose) && z >= 0 && z <= runwaySize + 2 + (2 * howClose);
 	}
 
 	@Override

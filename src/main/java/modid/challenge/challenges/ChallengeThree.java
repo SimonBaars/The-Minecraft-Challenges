@@ -11,7 +11,6 @@ import modid.challenge.core.MobFactory;
 import modid.challenge.structureloader.SchematicStructure;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Difficulty;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.Mob;
@@ -24,9 +23,9 @@ public class ChallengeThree extends Challenges {
 	int sizex = 65;
 	int sizey = 20;
 	int sizez = 75;
-	int fieldx = 20;
+	int fieldx = 30;
 	int fieldy = 5;
-	int fieldz = 20;
+	int fieldz = 40;
 	int cornerx;
 	int cornerz;
 	ArrayList<Entity> activeMonsters = new ArrayList<>();
@@ -36,22 +35,25 @@ public class ChallengeThree extends Challenges {
 
 	public ChallengeThree(int x, int y, int z) {
 		super(x, y, z, GameType.SURVIVAL, Difficulty.NORMAL);
+		// Forge room: playable field centered on start, schematic offset separately
+		cornerx = x - 15;
+		cornerz = z - 20;
 		showScore();
 		initArena();
-		cornerx = x + 32;
-		cornerz = z + 38;
-		for (ServerPlayer player : players) {
-			player.snapTo(x, y + 2, z);
-		}
+		teleportPlayers(x, y + 2, z);
 		resetPlayer();
 	}
 
 	void initArena() {
 		SchematicStructure structure = new SchematicStructure("arena");
 		structure.readFromFile();
-		structure.process(serverWorld, worldIn, x, y, z);
+		sizex = structure.length;
+		sizey = structure.height;
+		sizez = structure.width;
+		structure.process(serverWorld, worldIn, x + 32, y - 1, z + 37);
 		structure = new SchematicStructure("arenacheck");
 		structure.readFromFile();
+		structure.isLive = true;
 		this.checkStructure = structure;
 		ChallengeMod.checkMode = true;
 		items.add(Items.WOODEN_SWORD);
@@ -63,7 +65,7 @@ public class ChallengeThree extends Challenges {
 		for (int i = 0; i < amount; i++) {
 			Mob monster = MobFactory.create(monsterId, serverWorld);
 			if (monster == null) continue;
-			monster.snapTo(cornerx - ((int) (Math.random() * (fieldx - 2))) - 1, y + 3, cornerz + 3 - ((int) (Math.random() * (fieldz - 2))) - 1, 0, 0);
+			monster.snapTo(cornerx + ((int) (Math.random() * (fieldx - 2))) + 1, y + 2, cornerz + ((int) (Math.random() * (fieldz - 2))) + 1, 0, 0);
 			sl.addFreshEntity(monster);
 			activeMonsters.add(monster);
 		}
@@ -78,10 +80,10 @@ public class ChallengeThree extends Challenges {
 
 	@Override
 	boolean closeToGameRoom(int howClose, int x, int y, int z) {
-		x = x - cornerx + fieldx - howClose;
-		y = y - this.y - howClose;
-		z = z - cornerz + fieldz - howClose;
-		return x >= 0 && x <= fieldx + (2 * howClose) && y >= 0 && y <= 10 + (2 * howClose) && z >= 0 && z <= fieldz + (2 * howClose);
+		x = x - cornerx - howClose;
+		y = y - this.y - 1 - howClose;
+		z = z - cornerz - howClose;
+		return x >= 0 && x <= fieldx + (2 * howClose) && y >= 0 && y <= fieldy + (2 * howClose) && z >= 0 && z <= fieldz + (2 * howClose) + 2;
 	}
 
 	@Override

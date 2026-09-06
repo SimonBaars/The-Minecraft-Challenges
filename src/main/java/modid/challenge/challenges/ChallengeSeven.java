@@ -9,7 +9,6 @@ import modid.challenge.core.ChallengeMod;
 import modid.challenge.core.ClientHooks;
 import modid.challenge.core.MobFactory;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Difficulty;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.level.GameType;
@@ -33,10 +32,8 @@ public class ChallengeSeven extends Challenges {
 		showScore();
 		createArena();
 		cornerx = x + (fieldx / 2) - 1;
-		cornerz = z + (fieldy / 2) - 1;
-		for (ServerPlayer player : players) {
-			player.snapTo(x, y + 2, z);
-		}
+		cornerz = z + (fieldy / 2) - 1; // forge uses fieldy here
+		teleportPlayers(x, y + 2, z);
 		resetPlayer();
 	}
 
@@ -67,9 +64,9 @@ public class ChallengeSeven extends Challenges {
 	@Override
 	boolean closeToGameRoom(int howClose, int x, int y, int z) {
 		x = x - cornerx + fieldx - howClose;
-		y = y - this.y - howClose;
-		z = z - cornerz + fieldz - howClose;
-		return x >= 0 && x <= fieldx + (2 * howClose) && y >= 0 && y <= fieldy + (2 * howClose) && z >= 0 && z <= fieldz + (2 * howClose);
+		y = y - this.y - 1 - howClose;
+		z = z - cornerz + fieldz - howClose - 2;
+		return x >= 0 && x <= fieldx + (2 * howClose) + 2 && y >= 0 && y <= fieldy + (2 * howClose) && z >= 0 && z <= fieldz + (2 * howClose) + 2;
 	}
 
 	@Override

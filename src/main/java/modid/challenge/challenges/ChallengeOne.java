@@ -5,7 +5,6 @@ import java.nio.file.Files;
 
 import modid.challenge.core.ChallengeMod;
 import modid.challenge.core.ClientHooks;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Difficulty;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.Blocks;
@@ -23,11 +22,10 @@ public class ChallengeOne extends Challenges {
 	public ChallengeOne(int x, int y, int z) {
 		super(x, y, z, GameType.ADVENTURE, Difficulty.PEACEFUL);
 		showScore();
-		for (ServerPlayer player : players) {
-			player.snapTo(x - (runwayWidth / 2) - 1, y + 3, z - (runwaySize / 2));
-		}
-		resetPlayer();
 		firstRow();
+		// Center of runway floor (placeBlocks grows -X/-Z from origin)
+		teleportPlayers(x - (runwayWidth / 2) - 1, y + 1, z - (runwaySize / 2));
+		resetPlayer();
 	}
 
 	void firstRow() {
@@ -68,7 +66,7 @@ public class ChallengeOne extends Challenges {
 		x = x - this.x + (runwaySize / 4) + 1 - howClose;
 		y = y - this.y + 2 - howClose;
 		z = z - this.z + ((int) (5.00 * (runwaySize / 4.00))) + 1 + getScore() - howClose;
-		return (x >= 0 && x <= runwayWidth + 2 + (2 * howClose) && y >= 0 && y <= maxHeight + 2 + (2 * howClose) && z >= 0 && z <= runwaySize + 1 + (2 * howClose));
+		return (x >= 0 && x <= runwayWidth + 2 + (2 * howClose) && y >= 0 && y <= maxHeight + 2 + (2 * howClose) && z >= 0 && z <= runwaySize + 2 + (2 * howClose));
 	}
 
 	@Override

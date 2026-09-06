@@ -31,7 +31,7 @@ Environment: Minecraft **26.2**, Fabric Loader **0.19.5**, Fabric API **0.159.0+
 | Right-click starter | Place starter block, right-click | Challenge starts; sidebar Score appears | [x] |
 | `/challenge <1-9> <x> <y> <z>` | Run from chat | Same as placing corresponding starter | [x] |
 | Too high Y | Start with y>150 | Aborts with height message | [x] |
-| Pause during run | Open pause menu | Challenge cancelled; chat warning | [ ] |
+| Pause during run | Open pause menu | Challenge cancelled; chat warning | [x] |
 
 ## Per-challenge smoke tests
 
@@ -69,3 +69,4 @@ Environment: Minecraft **26.2**, Fabric Loader **0.19.5**, Fabric API **0.159.0+
 - Designed for singleplayer; dedicated multiplayer support is incomplete.
 - Legacy schematic IDs may not map 1:1 to modern blocks.
 - External leaderboard host may be unreachable; use `/retry` after connectivity fixes.
+- Sustained `/challenge` needs server `teleportTo` (not `snapTo`); opening pause cancels the run by design.

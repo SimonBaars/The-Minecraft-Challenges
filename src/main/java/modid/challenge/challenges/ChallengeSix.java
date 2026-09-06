@@ -9,7 +9,6 @@ import modid.challenge.core.ChallengeMod;
 import modid.challenge.core.ClientHooks;
 import modid.challenge.structureloader.SchematicStructure;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Difficulty;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntitySpawnReason;
@@ -37,12 +36,10 @@ public class ChallengeSix extends Challenges {
 		super(x, y, z, GameType.SURVIVAL, Difficulty.PEACEFUL);
 		showScore();
 		initArena();
-		for (ServerPlayer player : players) {
-			player.snapTo(x, y + 27, z);
-		}
+		teleportPlayers(x, y + 27, z);
 		resetPlayer();
 		startTime = System.currentTimeMillis();
-		waitTime = 50;
+		waitTime = 200;
 
 	}
 
@@ -87,10 +84,13 @@ public class ChallengeSix extends Challenges {
 
 	@Override
 	boolean closeToGameRoom(int howClose, int x, int y, int z) {
-		x = x - this.x + (towersizex / 2) - howClose;
+		int tx = Math.max(4, towersizex);
+		int tz = Math.max(4, towersizez);
+		x = x - this.x + (tx / 2) - howClose;
 		y = y - this.y - 23 - howClose;
-		z = z - this.z + (towersizez / 2) - howClose;
-		return x >= 0 && x <= towersizex + (2 * howClose) && y >= 0 && y <= 5 + (2 * howClose) && z >= 0 && z <= towersizez + (2 * howClose);
+		z = z - this.z + (tz / 2) - howClose;
+		// Slightly taller than forge so landing / jump bobbing does not instantly fail
+		return x >= 0 && x <= tx + (2 * howClose) && y >= 0 && y <= 8 + (2 * howClose) && z >= 0 && z <= tz + (2 * howClose);
 	}
 
 	@Override

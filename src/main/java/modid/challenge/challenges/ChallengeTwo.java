@@ -6,7 +6,6 @@ import java.nio.file.Files;
 import modid.challenge.core.ChallengeMod;
 import modid.challenge.core.ClientHooks;
 import net.minecraft.network.chat.Component;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Difficulty;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.Blocks;
@@ -28,12 +27,10 @@ public class ChallengeTwo extends Challenges {
 	public ChallengeTwo(int x, int y, int z) {
 		super(x, y, z, GameType.ADVENTURE, Difficulty.PEACEFUL);
 		showScore();
-		for (ServerPlayer player : players) {
-			player.snapTo(x - (runwayWidth / 2) - 2, y + 3, z - (runwaySize / 2));
-		}
-		waitTime = 50;
-		resetPlayer();
 		firstRow();
+		teleportPlayers(x - (runwayWidth / 2) - 1, y + 1, z - (runwaySize / 2));
+		waitTime = 200; // allow teleport sync before first room check / score tick
+		resetPlayer();
 		startTime = System.currentTimeMillis();
 		displayTime = scoreBoard.getScoreboard().getOrCreatePlayerScore(ScoreHolder.forNameOnly("Time left"), scoreBoard);
 		displayTime.set(120);
@@ -77,7 +74,7 @@ public class ChallengeTwo extends Challenges {
 		x = x - this.x + (runwaySize / 4) + 1 - howClose;
 		y = y - this.y + 2 - howClose;
 		z = z - this.z + ((int) (5.00 * (runwaySize / 4.00))) + 1 + getScore() - howClose;
-		return (x >= 0 && x <= runwayWidth + 2 + (2 * howClose) && y >= 0 && y <= maxHeight + 2 + (2 * howClose) && z >= 0 && z <= runwaySize + 1 + (2 * howClose));
+		return (x >= 0 && x <= runwayWidth + 2 + (2 * howClose) && y >= 0 && y <= maxHeight + 2 + (2 * howClose) && z >= 0 && z <= runwaySize + 2 + (2 * howClose));
 	}
 
 	@Override
