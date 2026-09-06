@@ -57,7 +57,7 @@ Creative tab (9 textured starters): `playtest-shots/creative-tab.webp` (prior). 
 | Recipe datapack load | **PASS** | `Loaded 1590 recipes`; `/recipe give @s challenge:block_challenge_one` → unlocked |
 | Recipes 6–9 | N/A | Legacy Forge only registered crafts for challenges 1–5 |
 | Full crafting grid craft | **Partial** | Unlock verified; in-GUI craft click not cleanly captured |
-| Online leaderboard | **Broken host** | `minecraftcreations.com` returns for-sale HTML (sanitized in code for next launch) |
+| Online leaderboard | **N/A / deferred** | Host parked/for-sale (AboveDomains HTML); posts gated (`ONLINE_LEADERBOARD_ENABLED=false`) |
 | Sustained full runs | **Pass** | Jump/King prior; Archery 12s+; Flappy idle 13s+; Arena ~13s combat |
 
 
@@ -86,9 +86,21 @@ Prior Jump ~15s / King 20s+ still valid. Active Flappy scoring run earlier reach
 
 ## Still broken / open
 
-- Sustained `/challenge`: Jump/King/Archery/Flappy/Arena verified 10s+ (see tables). Skill deaths and pause-cancel still end runs. Leaderboard host still parked.
-- Leaderboard posting cannot succeed while the legacy host is a parked page (chat spam fixed in source; needs client restart to pick up).
+- Sustained `/challenge`: Jump/King/Archery/Flappy/Arena verified 10s+ (see tables). Skill deaths and pause-cancel still end runs.
 - Pause-during-run cancel verified (Escape ends challenge). Exhaustive survival crafting of all 5 recipes not filmed this pass.
 - Night Vision (or any potion) aborts challenges by design (`resetPlayer`); do not use NV for playtests.
 
-Client left running in `chalplay` on DISPLAY=:3 after this pass.
+## Documented N/A (not Open)
+
+### Online leaderboard (closed 2026-09-05 ~7:35 PM PT)
+
+Legacy Forge posted AES-encrypted scores to `http://minecraftcreations.com/scorepostc/` and showed world ranks at `/cN`; `UpdateThread` pulled personal highs from `highscore.php` and an update flag from `challenge7.txt`.
+
+**Evidence (host dead, not flaky):**
+- DNS: `minecraftcreations.com` → `103.224.182.239`
+- `GET /`, `POST /scorepostc/`, `GET /c1`, `GET /scorepostc/highscore.php?player=test`, `GET /challenge7.txt` → all HTTP **200**, ~**1045** bytes, identical AboveDomains **for-sale** parking HTML
+- Not a portable API; a local file/NBT board would not recreate global rankings
+
+**Port disposition:** **N/A / deferred**. Default `ScoreThread.ONLINE_LEADERBOARD_ENABLED=false` (opt-in `-Dchallenge.onlineLeaderboard=true` if revived). `/retry` reports the same status. In-session sidebar “Current Highscore” still updates in memory. Mostly OK unchanged.
+
+Client left running in `chalplay` on DISPLAY=:3 after prior playtest pass.

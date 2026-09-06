@@ -41,7 +41,7 @@ Local port only (no GitHub push). Branch: `fabric-26.2`.
 ## Gameplay notes
 
 - Challenges remain **singleplayer / integrated-server oriented** (same design as the Forge mod).
-- Online score posting still targets `minecraftcreations.com` (may be offline).
+- Online score posting **N/A/deferred**: `minecraftcreations.com` is parked/for-sale; gated by `ScoreThread.ONLINE_LEADERBOARD_ENABLED` (default false).
 - Arena / watchtower schematics load through legacy `.structure` files; unknown numeric IDs fall back to stone.
 - Flappy challenge flap key defaults to **G**.
 

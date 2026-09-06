@@ -53,6 +53,10 @@ public final class ChallengeCommands {
 
 			dispatcher.register(Commands.literal("retry")
 				.executes(ctx -> {
+					if (!ScoreThread.ONLINE_LEADERBOARD_ENABLED) {
+						ctx.getSource().sendFailure(Component.literal(ScoreThread.HOST_STATUS));
+						return 0;
+					}
 					if (retryThread != null) {
 						ScoreThread thread = new ScoreThread(retryThread.score, retryThread.challengenum, retryThread.player);
 						retryThread = null;

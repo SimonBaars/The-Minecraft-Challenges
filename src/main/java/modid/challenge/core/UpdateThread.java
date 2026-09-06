@@ -5,9 +5,17 @@ import java.io.InputStreamReader;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 
+/**
+ * Legacy update + personal-highscore fetch from {@code minecraftcreations.com}.
+ * Gated by {@link ScoreThread#ONLINE_LEADERBOARD_ENABLED} — host is parked/for-sale
+ * (N/A/deferred). In-session highs still live in {@link ChallengeMod#highscores}.
+ */
 public class UpdateThread extends Thread {
 	@Override
 	public void run() {
+		if (!ScoreThread.ONLINE_LEADERBOARD_ENABLED) {
+			return;
+		}
 		String updateMessage = readFile("http://minecraftcreations.com/challenge7.txt");
 		if ("1".equals(updateMessage)) {
 			if (ClientHooks.localPlayer() != null) {

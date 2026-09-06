@@ -62,11 +62,11 @@ Environment: Minecraft **26.2**, Fabric Loader **0.19.5**, Fabric API **0.159.0+
 | Feature | Steps | Expected | Pass |
 |---------|-------|----------|------|
 | Finish / die | Complete or fail a challenge | Chat shows score; optional online post | [x] |
-| `/retry` | After a failed post | Retries last score upload | [ ] |
+| `/retry` | After a failed post | Reports N/A while host gated off | [x] |
 
 ## Known limitations
 
 - Designed for singleplayer; dedicated multiplayer support is incomplete.
 - Legacy schematic IDs may not map 1:1 to modern blocks.
-- External leaderboard host may be unreachable; use `/retry` after connectivity fixes.
+- Online leaderboard **N/A/deferred** (`minecraftcreations.com` parked/for-sale); posts gated off; `/retry` will not revive a dead host.
 - Sustained `/challenge` needs server `teleportTo` (not `snapTo`); opening pause cancels the run by design.

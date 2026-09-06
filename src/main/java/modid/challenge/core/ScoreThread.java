@@ -14,7 +14,26 @@ import javax.crypto.spec.SecretKeySpec;
 
 import net.minecraft.world.entity.player.Player;
 
+/**
+ * Legacy online score post to {@code minecraftcreations.com/scorepostc/}.
+ * <p>
+ * That host is <b>N/A / deferred</b>: the domain is parked / for-sale (AboveDomains)
+ * and every legacy endpoint returns the same parking HTML (verified 2026-09-05 PT).
+ * Global world rankings cannot be ported without that backend. In-session personal
+ * highs still update {@link ChallengeMod#highscores}; no remote post is attempted
+ * unless {@link #ONLINE_LEADERBOARD_ENABLED} is flipped (opt-in for a revived host).
+ */
 public class ScoreThread extends Thread {
+	/**
+	 * Opt-in only. Default false — host is parked for-sale, not temporarily down.
+	 * Set true (or {@code -Dchallenge.onlineLeaderboard=true}) if the legacy API returns.
+	 */
+	public static final boolean ONLINE_LEADERBOARD_ENABLED =
+		Boolean.parseBoolean(System.getProperty("challenge.onlineLeaderboard", "false"));
+
+	public static final String HOST_STATUS =
+		"Online leaderboard N/A/deferred — minecraftcreations.com is parked/for-sale (no scorepost API).";
+
 	public int score;
 	public int challengenum;
 	public Player player;
@@ -28,20 +47,27 @@ public class ScoreThread extends Thread {
 
 	@Override
 	public void run() {
+		if (!ONLINE_LEADERBOARD_ENABLED) {
+			announceLocalOnly();
+			return;
+		}
 		int i;
 		for (i = 0; i < 5 && !tryToPostHighscore(); i++) {
 		}
 		if (i == 5) {
 			ClientHooks.chat("Failed to post your score.");
-			ClientHooks.chat("There was an error somewhere. Please contact SimJoo about this.");
-			ClientHooks.chat("http://minecraftcreations.com/contact.php");
-			ClientHooks.chat("Please tell him this: " + encrypt(player.getName().getString() + challengenum + score, "VpzWvUXEPapsh9bx") + ".");
+			ClientHooks.chat(HOST_STATUS);
 			retry = true;
 		}
 		if (retry) {
-			ClientHooks.chat("Do \"/retry\" to retry posting your score.");
+			ClientHooks.chat("Do \"/retry\" to retry posting your score (only useful if the host returns).");
 			ChallengeCommands.retryThread = this;
 		}
+	}
+
+	private void announceLocalOnly() {
+		// Score already announced by Challenges.endChallenge; only note host status.
+		ClientHooks.chat(HOST_STATUS);
 	}
 
 	private boolean tryToPostHighscore() {
@@ -56,7 +82,7 @@ public class ScoreThread extends Thread {
 			if (hasImpossibleScore()) {
 				ClientHooks.chat("You got a score of " + score + " on challenge " + challengenum + ".");
 				ClientHooks.chat("This score is in the range of impossible scores for this challenge.");
-				ClientHooks.chat("It's probably due to a bug. Please report it to SimJoo.");
+				ClientHooks.chat("It's probably due to a bug. Please report it.");
 				return true;
 			}
 			String challengenumString = challengenum < 10 ? (" " + challengenum) : ("" + challengenum);
@@ -66,6 +92,11 @@ public class ScoreThread extends Thread {
 				"score", encrypt("" + score, "13FRxiEjtS6Cir" + challengenumString),
 				"id", encrypt("" + challengenum, "1Q58jgSh3jLUUQ4V"));
 			ClientHooks.chat(sanitizeChat(postResult));
+			if (looksLikeParkingPage(postResult)) {
+				ClientHooks.chat(HOST_STATUS);
+				retry = false;
+				return true;
+			}
 			ClientHooks.chat("Check the leaderboards online at: ");
 			ClientHooks.chat("minecraftcreations.com/c" + challengenum);
 			ClientHooks.chat("Here you can see your ranking vs the rest of the world!");
@@ -87,13 +118,19 @@ public class ScoreThread extends Thread {
 		};
 	}
 
+	private static boolean looksLikeParkingPage(String msg) {
+		if (msg == null) return false;
+		String t = msg.trim();
+		return t.startsWith("<!DOCTYPE") || t.startsWith("<html") || t.contains("abovedomains")
+			|| t.contains("may be for sale");
+	}
 
 	private static String sanitizeChat(String msg) {
 		if (msg == null || msg.isBlank()) {
 			return "Could not post your score online.";
 		}
 		String trimmed = msg.trim();
-		if (trimmed.startsWith("<!DOCTYPE") || trimmed.startsWith("<html") || trimmed.contains("<body")) {
+		if (looksLikeParkingPage(trimmed) || trimmed.contains("<body")) {
 			return "Could not post your score online (leaderboard host returned a web page).";
 		}
 		if (trimmed.length() > 200) {
