@@ -4,24 +4,23 @@ import java.io.DataInputStream;
 import java.util.zip.GZIPInputStream;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtAccounter;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 
 /**
  * Loads legacy .structure schematics (numeric block ids from 1.8/1.9 era).
- * Metadata is ignored; ids are mapped through a best-effort legacy table.
+ * Block+meta are resolved at place-time via {@link LegacyBlockStates}.
  */
 public class SchematicStructure extends Structure {
 	public boolean isLive;
-	private Block[][][] blocks;
+	/** Pre-flattening block ids; -1 = unset / unmapped. */
+	private int[][][] legacyIds;
 	private int[][][] blockData;
 	private CompoundTag[] entities;
 	private CompoundTag[] tileEntities;
@@ -42,9 +41,11 @@ public class SchematicStructure extends Structure {
 		for (int y = 0; y < this.height; y++) {
 			for (int z = 0; z < this.width; z++) {
 				for (int x = 0; x < this.length; x++) {
-					Block block = this.blocks[y][z][x];
-					if (this.blockMode.equals("overlay") && block == Blocks.AIR) continue;
-					BlockState state = block.defaultBlockState();
+					int legacyId = this.legacyIds[y][z][x];
+					if (legacyId < 0) continue;
+					BlockState state = LegacyBlockStates.fromLegacy(legacyId, this.blockData[y][z][x]);
+					if (state == null) continue;
+					if (this.blockMode.equals("overlay") && state.isAir()) continue;
 					StructureUtils.setBlock(blockPlacer2, state, new BlockPos(x, y, z), this.getCenterPos(), harvestPos);
 				}
 			}
@@ -61,8 +62,8 @@ public class SchematicStructure extends Structure {
 		} catch (Exception e) {
 			System.err.println("Challenge Mod: Error loading structure '" + this.fileName + "'");
 			this.length = this.width = this.height = 1;
-			this.blocks = new Block[1][1][1];
-			this.blocks[0][0][0] = Blocks.STONE;
+			this.legacyIds = new int[1][1][1];
+			this.legacyIds[0][0][0] = 1; // stone
 			this.blockData = new int[1][1][1];
 			this.entities = new CompoundTag[0];
 			this.tileEntities = new CompoundTag[0];
@@ -74,16 +75,25 @@ public class SchematicStructure extends Structure {
 		this.width = nbtTagCompound.getShortOr("Length", (short) 1);
 		this.height = nbtTagCompound.getShortOr("Height", (short) 1);
 
-		this.blocks = new Block[this.height][this.width][this.length];
+		this.legacyIds = new int[this.height][this.width][this.length];
 		this.blockData = new int[this.height][this.width][this.length];
+		for (int y0 = 0; y0 < this.height; y0++) {
+			for (int z0 = 0; z0 < this.width; z0++) {
+				for (int x0 = 0; x0 < this.length; x0++) {
+					this.legacyIds[y0][z0][x0] = -1;
+				}
+			}
+		}
 
 		byte[] blockIdsByte = nbtTagCompound.getByteArray("Blocks").orElse(new byte[0]);
 		byte[] blockDataByte = nbtTagCompound.getByteArray("Data").orElse(new byte[blockIdsByte.length]);
 		int x = 1, y = 1, z = 1;
 		for (int i = 0; i < blockIdsByte.length; i++) {
 			int blockId = blockIdsByte[i] & 0xFF;
-			this.blocks[y - 1][z - 1][x - 1] = LegacyBlocks.fromId(blockId);
-			this.blockData[y - 1][z - 1][x - 1] = i < blockDataByte.length ? blockDataByte[i] : 0;
+			int meta = i < blockDataByte.length ? (blockDataByte[i] & 0xFF) : 0;
+			// Keep raw id+meta; BlockState resolved at process-time via LegacyBlockStates
+			this.legacyIds[y - 1][z - 1][x - 1] = blockId;
+			this.blockData[y - 1][z - 1][x - 1] = meta;
 			x++;
 			if (x > this.length) {
 				x = 1;
@@ -108,53 +118,5 @@ public class SchematicStructure extends Structure {
 		}
 
 		this.initCenterPos();
-	}
-
-	/** Best-effort 1.8/1.9 numeric id → modern block. Unknown ids become stone. */
-	public static final class LegacyBlocks {
-		private LegacyBlocks() {}
-
-		public static Block fromId(int id) {
-			return switch (id) {
-				case 0 -> Blocks.AIR;
-				case 1 -> Blocks.STONE;
-				case 2 -> Blocks.GRASS_BLOCK;
-				case 3 -> Blocks.DIRT;
-				case 4 -> Blocks.COBBLESTONE;
-				case 5 -> Blocks.OAK_PLANKS;
-				case 7 -> Blocks.BEDROCK;
-				case 8, 9 -> Blocks.WATER;
-				case 10, 11 -> Blocks.LAVA;
-				case 12 -> Blocks.SAND;
-				case 13 -> Blocks.GRAVEL;
-				case 17 -> Blocks.OAK_LOG;
-				case 18 -> Blocks.OAK_LEAVES;
-				case 20 -> Blocks.GLASS;
-				case 24 -> Blocks.SANDSTONE;
-				case 35 -> Blocks.WOOL.white();
-				case 41 -> Blocks.GOLD_BLOCK;
-				case 42 -> Blocks.IRON_BLOCK;
-				case 44 -> Blocks.SMOOTH_STONE_SLAB;
-				case 45 -> Blocks.BRICKS;
-				case 48 -> Blocks.MOSSY_COBBLESTONE;
-				case 49 -> Blocks.OBSIDIAN;
-				case 50 -> Blocks.TORCH;
-				case 53 -> Blocks.OAK_STAIRS;
-				case 64 -> Blocks.OAK_DOOR;
-				case 65 -> Blocks.LADDER;
-				case 67 -> Blocks.COBBLESTONE_STAIRS;
-				case 85 -> Blocks.OAK_FENCE;
-				case 89 -> Blocks.GLOWSTONE;
-				case 98 -> Blocks.STONE_BRICKS;
-				case 112 -> Blocks.NETHER_BRICKS;
-				case 133 -> Blocks.EMERALD_BLOCK;
-				case 159 -> Blocks.TERRACOTTA;
-				default -> {
-					// Prefer registry id if it happens to align; otherwise stone
-					Block byRaw = BuiltInRegistries.BLOCK.byId(id);
-					yield byRaw != null && byRaw != Blocks.AIR ? byRaw : Blocks.STONE;
-				}
-			};
-		}
 	}
 }
