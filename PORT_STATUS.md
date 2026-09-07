@@ -8,6 +8,7 @@ Target: Fabric Minecraft **26.2** / Loader **0.19.5** / API **0.159.0+26.2** / J
 | Start smoke (1–9) | Pass | `/challenge` + creative starters |
 | Sustained runs | Pass | `connection.teleport` + grace; Jump/King prior; **Archery/Flappy/Arena** re-verified 10s+ |
 | Online leaderboard | **N/A / deferred** | `minecraftcreations.com` parked/for-sale (AboveDomains); posts gated off |
+| Schematic metadata | **Fixed** | `LegacyBlockStates` mapper (from IMS) applied; load keeps numeric id+meta, place uses `fromLegacy` |
 
 ## Documented N/A (not Open)
 
