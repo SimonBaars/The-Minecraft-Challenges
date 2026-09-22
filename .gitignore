@@ -13,3 +13,4 @@ bin/
 .settings/
 *.log
 _forge_src/
+jdk-25*
