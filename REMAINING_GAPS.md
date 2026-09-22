@@ -168,16 +168,21 @@ public static final String HOST_STATUS =
 
 ```bash
 export JAVA_HOME=/workspace/jdk-25
-./gradlew build
+./gradlew clean build
 ```
 
 **Result:**
 ```
-BUILD SUCCESSFUL in 23s
-5 actionable tasks: 5 executed
+BUILD SUCCESSFUL in 6s
+6 actionable tasks: 6 executed
 ```
 
-No errors, no warnings. Artifact: `build/libs/challenge-2.0.0+26.2.jar`
+**Verified:**
+- minecraft-merged.jar: **35MB** (fully populated, not empty)
+- LegacyBlockStates.class: **present** in jar
+- All 38 source files compile without errors
+- Artifact: `build/libs/challenge-2.0.0+26.2.jar` (140KB)
+- No split source sets required (client-only mod)
 
 ---
 
