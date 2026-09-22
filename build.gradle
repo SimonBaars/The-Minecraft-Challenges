@@ -33,6 +33,24 @@ dependencies {
 	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 }
 
+// Diagnostic: verify minecraft-merged jar before compilation
+tasks.register('verifyMinecraftJar') {
+	doLast {
+		def minecraftJar = configurations.compileClasspath.files.find { it.name.contains('minecraft-merged') }
+		if (minecraftJar) {
+			println "Found minecraft-merged jar: ${minecraftJar}"
+			println "Size: ${minecraftJar.length()} bytes"
+			if (minecraftJar.length() < 1000) {
+				throw new GradleException("minecraft-merged jar is suspiciously small (${minecraftJar.length()} bytes)")
+			}
+		} else {
+			throw new GradleException("Could not find minecraft-merged jar in classpath")
+		}
+	}
+}
+
+compileJava.dependsOn verifyMinecraftJar
+
 processResources {
 	inputs.property "version", project.version
 	filesMatching("fabric.mod.json") {
